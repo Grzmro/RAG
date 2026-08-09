@@ -1,0 +1,10 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.chroma/
+.fastembed_cache/
+eval/reports/
+.pytest_cache/
+.DS_Store
