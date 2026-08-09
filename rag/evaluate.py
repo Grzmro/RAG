@@ -18,10 +18,15 @@ from pathlib import Path
 import yaml
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from rag.citations import verify_spans
 from rag.config import Settings
 from rag.llm import build_chat_model, message_text, parse_json_object
 from rag.pipeline import RAGAnswer, RAGPipeline
-from rag.prompts import JUDGE_SYSTEM_PROMPT, JUDGE_USER_TEMPLATE
+from rag.prompts import (
+    JUDGE_SYSTEM_PROMPT,
+    JUDGE_SYSTEM_PROMPT_NATIVE,
+    JUDGE_USER_TEMPLATE,
+)
 from rag.retriever import format_context
 
 HALLUCINATION_VERDICTS = {"hallucinated", "partially_grounded"}
@@ -55,6 +60,8 @@ class CaseResult:
     groundedness: int | None
     verdict: str
     citations_valid: bool | None
+    # Native citation mode only: every reported span matched its source text.
+    citation_spans_ok: bool | None
     unsupported_claims: list[str]
     judge_reasoning: str
     flagged: bool
@@ -84,12 +91,22 @@ class GroundednessJudge:
     """LLM-as-judge scoring an answer strictly against its retrieved context."""
 
     def __init__(self, settings: Settings) -> None:
+        self.settings = settings
         self.llm = build_chat_model(settings, settings.judge_model)
+        # Native-mode answers carry no inline markers, so the default prompt's
+        # "check the [n] citations" step has nothing to check and its scoring
+        # rubric would penalise their absence. Attribution is verified in code
+        # there instead — see `verify_spans`.
+        self.system_prompt = (
+            JUDGE_SYSTEM_PROMPT_NATIVE
+            if settings.native_citations
+            else JUDGE_SYSTEM_PROMPT
+        )
 
     def score(self, result: RAGAnswer) -> dict:
         response = self.llm.invoke(
             [
-                SystemMessage(content=JUDGE_SYSTEM_PROMPT),
+                SystemMessage(content=self.system_prompt),
                 HumanMessage(
                     content=JUDGE_USER_TEMPLATE.format(
                         question=result.question,
@@ -129,7 +146,13 @@ def evaluate_case(case: EvalCase, pipeline: RAGPipeline, judge: GroundednessJudg
 
     unsupported = [str(c) for c in verdict.get("unsupported_claims", []) or []]
     groundedness = verdict.get("groundedness")
+    # The native judge is not asked about attribution, so it reports no verdict
+    # on it — the deterministic span check below covers that instead.
     citations_valid = verdict.get("citations_valid")
+
+    spans_ok: bool | None = None
+    if result.citations and any(c.cited_text is not None for c in result.citations):
+        spans_ok = not verify_spans(result.citations, result.retrieved)
 
     flags: list[str] = []
     if unsupported:
@@ -142,6 +165,8 @@ def evaluate_case(case: EvalCase, pipeline: RAGPipeline, judge: GroundednessJudg
         flags.append("dangling_citation")
     if citations_valid is False:
         flags.append("misattributed_citation")
+    if spans_ok is False:
+        flags.append("citation_span_mismatch")
     if not abstention_correct:
         flags.append(
             "should_have_abstained" if not case.answerable else "abstained_unexpectedly"
@@ -168,6 +193,7 @@ def evaluate_case(case: EvalCase, pipeline: RAGPipeline, judge: GroundednessJudg
         groundedness=groundedness if isinstance(groundedness, int) else None,
         verdict=str(verdict.get("verdict", "unknown")),
         citations_valid=citations_valid if isinstance(citations_valid, bool) else None,
+        citation_spans_ok=spans_ok,
         unsupported_claims=unsupported,
         judge_reasoning=str(verdict.get("reasoning", "")),
         flagged=bool(flags),
@@ -180,6 +206,7 @@ def summarize(results: list[CaseResult]) -> dict:
     scored = [r.groundedness for r in results if r.groundedness is not None]
     with_recall = [r for r in results if r.retrieval_hit is not None]
     cite_checked = [r for r in results if r.citations_valid is not None]
+    span_checked = [r for r in results if r.citation_spans_ok is not None]
 
     def pct(count: int, total: int) -> float:
         return round(100.0 * count / total, 1) if total else 0.0
@@ -192,6 +219,10 @@ def summarize(results: list[CaseResult]) -> dict:
         "flagged_rate_pct": pct(sum(r.flagged for r in results), n),
         "citation_validity_pct": pct(
             sum(bool(r.citations_valid) for r in cite_checked), len(cite_checked)
+        ),
+        # Native mode only; 0.0 when the judge, not the API, reported citations.
+        "citation_span_integrity_pct": pct(
+            sum(bool(r.citation_spans_ok) for r in span_checked), len(span_checked)
         ),
         "dangling_citation_count": sum(len(r.dangling_citations) for r in results),
         "abstention_accuracy_pct": pct(sum(r.abstention_correct for r in results), n),

@@ -118,6 +118,47 @@ Respond with a single JSON object and nothing else:
   "reasoning": "<two sentences at most>"
 }"""
 
+JUDGE_SYSTEM_PROMPT_NATIVE = """\
+You are a strict evaluator of retrieval-augmented answers. You are given a question, the \
+context passages that were retrieved, and the answer that was produced.
+
+Judge ONLY whether the answer is grounded in the passages. Do not judge style, and do not \
+use outside knowledge: a claim that is true in the real world but absent from the passages \
+is UNSUPPORTED.
+
+This answer carries no inline citation markers by design — its citations are attached by \
+the API as verified character spans and are checked separately in code. Do NOT look for \
+`[n]` markers, do not penalise their absence, and do not judge attribution at all. Score \
+only whether each claim is supported by the passages.
+
+Procedure:
+1. Split the answer into atomic factual claims (ignore hedges and transitions).
+2. For each claim decide: `supported` (stated or directly entailed by a passage), \
+`partially_supported` (close but distorts a detail such as a number, name or scope), or \
+`unsupported` (absent from every passage).
+
+Scoring (`groundedness`, 1-5):
+5 = every claim supported
+4 = every claim supported, but at least one states more than its passage strictly says
+3 = one partially supported claim, no unsupported claims
+2 = one unsupported claim
+1 = multiple unsupported claims, or the core answer is fabricated
+
+An answer that correctly abstains (starts with INSUFFICIENT_CONTEXT) when the passages \
+genuinely lack the information scores 5.
+
+Respond with a single JSON object and nothing else:
+{
+  "groundedness": <int 1-5>,
+  "verdict": "grounded" | "partially_grounded" | "hallucinated",
+  "claims": [
+    {"claim": "<text>", "status": "supported|partially_supported|unsupported",
+     "passages": [<int>, ...], "note": "<short reason>"}
+  ],
+  "unsupported_claims": ["<claim text>", ...],
+  "reasoning": "<two sentences at most>"
+}"""
+
 JUDGE_USER_TEMPLATE = """\
 Question:
 {question}

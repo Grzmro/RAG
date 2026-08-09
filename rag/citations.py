@@ -63,6 +63,29 @@ def answer_text(content: Any) -> str:
     return "".join(parts).strip()
 
 
+def verify_spans(
+    citations: Sequence[Any], chunks: Sequence[RetrievedChunk]
+) -> list[Any]:
+    """Return the citations whose span does not match the source text.
+
+    This is the check that the marker mode cannot perform at all and that the
+    judge should not be asked to perform: `chunk.text[start:end]` either equals
+    `cited_text` or it does not, and no model opinion is involved. A non-empty
+    result means the answer's evidence does not survive being looked up.
+    """
+    by_id = {chunk.chunk_id: chunk.text for chunk in chunks}
+    mismatched: list[Any] = []
+    for citation in citations:
+        start, end = citation.start_char_index, citation.end_char_index
+        source = by_id.get(citation.chunk_id)
+        if source is None or start is None or end is None:
+            mismatched.append(citation)
+            continue
+        if source[start:end] != citation.cited_text:
+            mismatched.append(citation)
+    return mismatched
+
+
 def extract_citations(content: Any) -> list[dict[str, Any]]:
     """Pull the citation objects out of the response, in order of appearance.
 

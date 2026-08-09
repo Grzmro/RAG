@@ -11,11 +11,16 @@ from rag.config import Settings
 from rag.ingest import chunk_documents, load_and_chunk
 from rag.llm import parse_json_object
 from rag.loaders import discover_files
-from rag.citations import answer_text, build_document_blocks, extract_citations
+from rag.citations import (
+    answer_text,
+    build_document_blocks,
+    extract_citations,
+    verify_spans,
+)
 from rag.hybrid import BM25Index, fuse_rankings, reciprocal_rank_fusion, tokenize
-from rag.pipeline import RAGPipeline
+from rag.pipeline import Citation, RAGPipeline
 from rag.rerank import build_reranker, candidate_count, ranking_to_scores, rerank_chunks
-from rag.retriever import RetrievedChunk, format_context
+from rag.retriever import RetrievedChunk, Retriever, format_context
 
 
 def make_settings(**overrides) -> Settings:
@@ -353,6 +358,150 @@ class TestNativeCitations:
         )
         assert cited == []
         assert dangling == []
+
+
+class TestSpanVerification:
+    """The check that replaces the judge's attribution question in native mode."""
+
+    @staticmethod
+    def _cited(chunk, start: int, end: int, text: str | None = None) -> Citation:
+        return Citation(
+            index=chunk.index,
+            source=chunk.source,
+            chunk_id=chunk.chunk_id,
+            snippet=chunk.snippet(),
+            score=chunk.score,
+            cited_text=chunk.text[start:end] if text is None else text,
+            start_char_index=start,
+            end_char_index=end,
+        )
+
+    def test_matching_span_passes(self):
+        chunk = make_chunk(1, "a.md", "Receipts are due within 45 days.")
+        assert verify_spans([self._cited(chunk, 24, 31)], [chunk]) == []
+
+    def test_shifted_span_is_caught(self):
+        # The failure the marker mode cannot even express: the quoted evidence
+        # does not appear at the offsets it claims.
+        chunk = make_chunk(1, "a.md", "Receipts are due within 45 days.")
+        bad = self._cited(chunk, 0, 8, text="45 days")
+        assert verify_spans([bad], [chunk]) == [bad]
+
+    def test_citation_pointing_at_an_unretrieved_chunk_is_caught(self):
+        chunk = make_chunk(1, "a.md", "Receipts are due within 45 days.")
+        assert verify_spans([self._cited(chunk, 0, 8)], []) != []
+
+    def test_missing_offsets_are_caught(self):
+        chunk = make_chunk(1, "a.md", "text")
+        bad = Citation(
+            index=1,
+            source="a.md",
+            chunk_id=chunk.chunk_id,
+            snippet="",
+            score=0.9,
+            cited_text="text",
+        )
+        assert verify_spans([bad], [chunk]) == [bad]
+
+    def test_no_citations(self):
+        assert verify_spans([], [make_chunk(1)]) == []
+
+
+class _StubStore:
+    """Stands in for Chroma: returns fixed dense hits, records the k it got."""
+
+    def __init__(self, hits: list[tuple[Document, float]]) -> None:
+        self._hits = hits
+        self.calls: list[int] = []
+
+    def similarity_search_with_relevance_scores(self, query: str, k: int):
+        self.calls.append(k)
+        return self._hits[:k]
+
+
+def make_retriever(settings: Settings, dense: list[tuple[str, float]], corpus: dict[str, str]):
+    """A Retriever wired to stubs — no embeddings, no Chroma, no network.
+
+    `_corpus` is a cached_property, so seeding `__dict__` bypasses the real
+    collection read while leaving the merge logic under test untouched.
+    """
+    retriever = object.__new__(Retriever)
+    retriever.settings = settings
+    retriever.reranker = None
+    documents = {
+        chunk_id: Document(
+            page_content=text,
+            metadata={"source": chunk_id.split("::")[0], "chunk_id": chunk_id},
+        )
+        for chunk_id, text in corpus.items()
+    }
+    retriever.store = _StubStore([(documents[cid], score) for cid, score in dense])
+    retriever.__dict__["_corpus"] = (
+        documents,
+        BM25Index.build(list(corpus), list(corpus.values())),
+    )
+    return retriever
+
+
+class TestHybridRetrieval:
+    CORPUS = {
+        "expenses.md::0": "Expenses at or above 200 pounds need department head approval.",
+        "kitchen.md::0": "The office kitchen is cleaned every Friday by facilities.",
+        "leave.md::0": "Employees get 25 days of annual leave each year.",
+    }
+
+    def _retriever(self, **overrides):
+        settings = make_settings(retrieval_mode="hybrid", top_k=3, **overrides)
+        # Dense ranks the kitchen chunk top — the lexical channel must correct it.
+        dense = [("kitchen.md::0", 0.55), ("leave.md::0", 0.40)]
+        return make_retriever(settings, dense, self.CORPUS)
+
+    def test_lexical_only_hit_enters_the_results(self):
+        # The whole point: a chunk dense search never returned at all.
+        out = self._retriever().search("expenses 200 pounds approval")
+        assert "expenses.md::0" in [c.chunk_id for c in out]
+        found = next(c for c in out if c.chunk_id == "expenses.md::0")
+        assert found.channel == "lexical"
+        assert found.score == 0.0  # never scored by the dense channel
+        assert found.lexical_score > 0
+
+    def test_records_both_scores_when_both_channels_agree(self):
+        out = self._retriever().search("office kitchen cleaned Friday")
+        kitchen = next(c for c in out if c.chunk_id == "kitchen.md::0")
+        assert kitchen.channel == "both"
+        assert kitchen.score == 0.55 and kitchen.lexical_score > 0
+
+    def test_every_result_carries_a_fusion_score_and_contiguous_indices(self):
+        out = self._retriever().search("expenses 200 pounds")
+        assert all(c.fusion_score is not None for c in out)
+        assert [c.index for c in out] == list(range(1, len(out) + 1))
+
+    def test_ranking_score_prefers_fusion_over_dense(self):
+        out = self._retriever().search("expenses 200 pounds")
+        assert out[0].ranking_score == out[0].fusion_score
+
+    def test_truncates_to_k(self):
+        out = self._retriever().search("expenses kitchen leave", k=2)
+        assert len(out) == 2
+
+    def test_dense_mode_ignores_the_lexical_channel(self):
+        settings = make_settings(retrieval_mode="dense", top_k=3)
+        dense = [("kitchen.md::0", 0.55), ("leave.md::0", 0.40)]
+        out = make_retriever(settings, dense, self.CORPUS).search("expenses 200 pounds")
+        assert [c.chunk_id for c in out] == ["kitchen.md::0", "leave.md::0"]
+        assert all(c.channel == "dense" and c.fusion_score is None for c in out)
+
+    def test_threshold_filters_the_dense_channel_only(self):
+        # Documented tradeoff: a lexical-only hit has no dense score to threshold,
+        # so SCORE_THRESHOLD deliberately does not apply to it.
+        out = self._retriever(score_threshold=0.5).search("expenses 200 pounds approval")
+        by_id = {c.chunk_id: c for c in out}
+        assert "leave.md::0" not in by_id  # dense 0.40, below the threshold
+        assert "expenses.md::0" in by_id  # lexical-only, unaffected
+
+    def test_query_with_no_lexical_match_falls_back_to_dense_order(self):
+        out = self._retriever().search("quantum chromodynamics")
+        assert [c.chunk_id for c in out] == ["kitchen.md::0", "leave.md::0"]
 
 
 class TestJudgeOutputParsing:

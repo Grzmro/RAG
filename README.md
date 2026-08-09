@@ -217,6 +217,11 @@ references stop being expressible rather than being detected after the fact, whi
 `dangling_citations` is always empty in this mode. The tradeoff: answers carry no inline
 `[n]`, so the mapping lives in the citation table rather than in the prose.
 
+Because there are no markers to check, the evaluation loop swaps in a judge prompt that
+scores support only, and verifies attribution in code instead —
+`citation_span_integrity_pct` re-derives every span from the source and needs no model at
+all. Asking an LLM whether a citation was correct is strictly weaker than looking it up.
+
 ### Reranking
 
 Reranking reuses the same extras, so no new dependency is involved either way: the default
@@ -260,7 +265,8 @@ Metrics reported per run:
 | `mean_groundedness` | Mean judge score, 1–5 |
 | `grounded_rate_pct` | Answers with every claim supported and correctly cited |
 | `hallucination_rate_pct` | Answers containing at least one unsupported claim |
-| `citation_validity_pct` | Cited passages actually back the sentence they are attached to |
+| `citation_validity_pct` | Cited passages actually back the sentence they are attached to (judge; marker mode) |
+| `citation_span_integrity_pct` | Every reported span matches its source text exactly (deterministic; native mode) |
 | `dangling_citation_count` | `[n]` markers pointing outside the retrieved context |
 | `abstention_accuracy_pct` | Abstained exactly when the corpus lacks the answer |
 | `retrieval_recall_pct` | Expected source appeared in the top-k |
