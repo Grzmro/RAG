@@ -4,6 +4,7 @@
     python -m rag.cli ask "your question" [-k 5] [--show-context]
     python -m rag.cli eval [--questions eval/questions.yaml]
     python -m rag.cli status
+    python -m rag.cli demo [--no-pause]
     python -m rag.cli serve [--host 127.0.0.1] [--port 8000] [--reload]
 """
 
@@ -163,6 +164,12 @@ def cmd_eval(args: argparse.Namespace, settings: Settings) -> int:
     return 0
 
 
+def cmd_demo(args: argparse.Namespace, settings: Settings) -> int:
+    from rag.demo import run_demo
+
+    return run_demo(settings, console, pause=not args.no_pause)
+
+
 def cmd_status(_: argparse.Namespace, settings: Settings) -> int:
     from rag.store import collection_size, get_vectorstore
 
@@ -243,6 +250,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_status = sub.add_parser("status", help="Show configuration and index size")
     p_status.set_defaults(func=cmd_status)
+
+    p_demo = sub.add_parser("demo", help="Run a scripted walkthrough of the pipeline")
+    p_demo.add_argument(
+        "--no-pause",
+        action="store_true",
+        help="Do not wait for a keypress between steps (for recording or CI)",
+    )
+    p_demo.set_defaults(func=cmd_demo)
 
     p_serve = sub.add_parser("serve", help="Serve the HTTP API with Swagger UI at /docs")
     p_serve.add_argument("--host", default="127.0.0.1")

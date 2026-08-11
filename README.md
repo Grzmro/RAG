@@ -101,10 +101,21 @@ Sample output for `ask`:
 | `uv run rag ask "<question>" [-k N] [--show-context]` | Grounded answer with a citation table |
 | `uv run rag eval [--questions …] [--fail-under 4.5]` | Run the evaluation loop and write a report |
 | `uv run rag status` | Show resolved configuration and index size |
+| `uv run rag demo [--no-pause]` | Scripted walkthrough: grounding, abstention, verified citations, retrieval stages |
 | `uv run rag serve [--host …] [--port …] [--reload]` | Serve the HTTP API, Swagger UI at `/docs` |
 
 Add your own documents by dropping `.md`, `.txt` or `.pdf` files into `data/docs/`
 (subdirectories are walked) and re-running `ingest`.
+
+To see the whole thing in one pass — a grounded answer, a question it declines to answer,
+citation spans re-derived from the source, and the same query through each retrieval stage:
+
+```bash
+uv run rag demo
+```
+
+It checks its own preconditions first and falls back to the retrieval steps alone when no
+`ANTHROPIC_API_KEY` is set, so it is also a usable smoke test.
 
 ---
 
