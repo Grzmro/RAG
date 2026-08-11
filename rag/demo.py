@@ -71,7 +71,12 @@ def preflight(settings: Settings, console: Console) -> bool:
 
     has_key = bool(os.getenv("ANTHROPIC_API_KEY"))
     table.add_row("ANTHROPIC_API_KEY", "set" if has_key else "[yellow]unset — offline steps only[/]")
-    table.add_row("answer model", settings.answer_model)
+
+    model_ok, model_detail = (True, "") if not has_key else _check_model(settings.answer_model)
+    table.add_row(
+        "answer model",
+        settings.answer_model if model_ok else f"[red]{settings.answer_model} — {model_detail}[/]",
+    )
     table.add_row("retrieval", f"{settings.retrieval_mode} [dim](the demo varies this)[/]")
     table.add_row(
         "cross-encoder",
@@ -81,7 +86,32 @@ def preflight(settings: Settings, console: Console) -> bool:
 
     if not indexed:
         raise RuntimeError("The vector store is empty. Run `rag ingest` before the demo.")
+    if has_key and not model_ok:
+        raise RuntimeError(
+            f"ANSWER_MODEL={settings.answer_model!r} is not a model this API key can reach "
+            f"({model_detail}). Fix it in .env before demoing — for example "
+            f"ANSWER_MODEL=claude-opus-5 or claude-haiku-4-5-20251001."
+        )
     return has_key
+
+
+def _check_model(model: str) -> tuple[bool, str]:
+    """Ask the Models API whether this ID resolves.
+
+    Catching a bad ANSWER_MODEL here rather than three steps in is the whole
+    point of a pre-flight: a 404 mid-demo is a wall of traceback in front of an
+    audience. Any failure that is not a clean "no such model" is treated as
+    fine, so a network blip does not block a demo that would otherwise run.
+    """
+    try:
+        import anthropic
+
+        anthropic.Anthropic().models.retrieve(model)
+        return True, ""
+    except Exception as exc:  # noqa: BLE001 - any SDK error type
+        if type(exc).__name__ == "NotFoundError":
+            return False, "no such model"
+        return True, ""
 
 
 def _citation_table(result, title: str = "Citations") -> Table:
@@ -310,10 +340,26 @@ def run_demo(settings: Settings, console: Console, pause: bool = True) -> int:
             "\n[yellow]No ANTHROPIC_API_KEY — running the retrieval steps only.[/]"
         )
 
+    failed = 0
     for number, step in enumerate(steps, start=1):
         _wait(console, pause)
-        step(console, settings, number)
+        try:
+            step(console, settings, number)
+        except Exception as exc:  # noqa: BLE001 - a demo must not end in a traceback
+            # Pre-flight catches the predictable failures; anything left is a
+            # surprise, and a wall of stack trace in front of an audience is
+            # worse than a one-line apology and the next step.
+            failed += 1
+            console.print(
+                f"\n  [red]This step could not run:[/] {type(exc).__name__}: {exc}"
+            )
+            console.print("  [dim]continuing with the remaining steps[/]")
 
     console.print()
-    console.print(Panel("[bold]Done.[/] [dim]Source: rag/ — tests: `uv run pytest`[/]", border_style="cyan"))
-    return 0
+    console.print(
+        Panel(
+            "[bold]Done.[/] [dim]Source: rag/ — tests: `uv run pytest`[/]",
+            border_style="red" if failed else "cyan",
+        )
+    )
+    return 1 if failed else 0
