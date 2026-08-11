@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 import pytest
@@ -450,12 +451,13 @@ class _StubStore:
 def make_retriever(settings: Settings, dense: list[tuple[str, float]], corpus: dict[str, str]):
     """A Retriever wired to stubs — no embeddings, no Chroma, no network.
 
-    `_corpus` is a cached_property, so seeding `__dict__` bypasses the real
-    collection read while leaving the merge logic under test untouched.
+    Seeding the corpus cache bypasses the real collection read while leaving
+    the merge logic under test untouched.
     """
     retriever = object.__new__(Retriever)
     retriever.settings = settings
     retriever.reranker = None
+    retriever._corpus_lock = threading.Lock()
     documents = {
         chunk_id: Document(
             page_content=text,
@@ -464,7 +466,7 @@ def make_retriever(settings: Settings, dense: list[tuple[str, float]], corpus: d
         for chunk_id, text in corpus.items()
     }
     retriever.store = _StubStore([(documents[cid], score) for cid, score in dense])
-    retriever.__dict__["_corpus"] = (
+    retriever._corpus_cache = (
         documents,
         BM25Index.build(list(corpus), list(corpus.values())),
     )
@@ -567,6 +569,76 @@ class TestHybridRetrieval:
         chunks = retriever._dense_chunks("anything", fetch_k=3)
         assert len({c.chunk_id for c in chunks}) == 3
         assert len(retriever.search("anything")) == 3
+
+
+class TestSettingsValidation:
+    """Numeric settings are range-checked, like the provider names already were."""
+
+    @pytest.mark.parametrize(
+        "var,value",
+        [
+            ("BM25_B", "5.0"),  # blend factor, only defined on 0..1
+            ("BM25_B", "-0.1"),
+            ("BM25_K1", "-2"),  # term saturation, undefined below zero
+            ("RRF_K", "0"),
+            ("TOP_K", "-3"),  # silently returned nothing
+            ("TOP_K", "0"),
+            ("SCORE_THRESHOLD", "2.5"),  # would filter every passage
+            ("SCORE_THRESHOLD", "-1"),
+            ("CHUNK_SIZE", "0"),
+            ("MAX_TOKENS", "0"),
+        ],
+    )
+    def test_out_of_range_values_are_rejected(self, monkeypatch, var, value):
+        monkeypatch.setenv(var, value)
+        with pytest.raises(ValueError, match="out of range"):
+            Settings.from_env()
+
+    def test_non_numeric_values_are_rejected(self, monkeypatch):
+        monkeypatch.setenv("TOP_K", "lots")
+        with pytest.raises(ValueError, match="not a number"):
+            Settings.from_env()
+
+    def test_boundaries_are_accepted(self, monkeypatch):
+        monkeypatch.setenv("BM25_B", "0.0")
+        monkeypatch.setenv("SCORE_THRESHOLD", "1.0")
+        monkeypatch.setenv("TOP_K", "1")
+        settings = Settings.from_env()
+        assert (settings.bm25_b, settings.score_threshold, settings.top_k) == (0.0, 1.0, 1)
+
+
+class TestCorpusCache:
+    def test_index_is_built_once_under_concurrency(self):
+        # functools.cached_property holds no lock, so parallel first requests
+        # each read the whole collection and build their own index.
+        settings = make_settings(retrieval_mode="hybrid")
+        retriever = object.__new__(Retriever)
+        retriever.settings = settings
+        retriever.reranker = None
+        retriever._corpus_cache = None
+        retriever._corpus_lock = threading.Lock()
+
+        builds = []
+
+        class _CountingStore:
+            def get(self, include):
+                builds.append(1)
+                return {"ids": ["a::0"], "documents": ["text"], "metadatas": [{}]}
+
+        retriever.store = _CountingStore()
+        threads = [threading.Thread(target=lambda: retriever._corpus) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert len(builds) == 1
+
+    def test_cache_is_reused_on_later_calls(self):
+        retriever = make_retriever(
+            make_settings(retrieval_mode="hybrid"), [], {"a::0": "text"}
+        )
+        assert retriever._corpus is retriever._corpus
 
 
 class TestJudgeOutputParsing:

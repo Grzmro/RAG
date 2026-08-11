@@ -36,6 +36,24 @@ def _path(value: str) -> Path:
     return p if p.is_absolute() else (PROJECT_ROOT / p)
 
 
+def _number(name: str, default: str, low: float, high: float | None = None) -> float:
+    """Read a numeric setting and reject values outside its meaningful range.
+
+    Provider names are already validated strictly; numbers were not, so a
+    `BM25_B=5` or a negative `TOP_K` was accepted and then quietly produced
+    nonsense scores or empty results with nothing to point at.
+    """
+    raw = os.getenv(name, default)
+    try:
+        value = float(raw)
+    except ValueError:
+        raise ValueError(f"{name}={raw!r} is not a number.") from None
+    if value < low or (high is not None and value > high):
+        bound = f"{low}..{high}" if high is not None else f"at least {low}"
+        raise ValueError(f"{name}={raw} is out of range (expected {bound}).")
+    return value
+
+
 @dataclass(frozen=True)
 class Settings:
     # paths
@@ -120,24 +138,28 @@ class Settings:
             embedding_model=os.getenv(
                 "EMBEDDING_MODEL", _DEFAULT_EMBEDDING_MODELS[provider]
             ),
-            chunk_size=int(os.getenv("CHUNK_SIZE", "900")),
-            chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "150")),
-            top_k=int(os.getenv("TOP_K", "5")),
-            score_threshold=float(os.getenv("SCORE_THRESHOLD", "0.0")),
+            chunk_size=int(_number("CHUNK_SIZE", "900", 1)),
+            chunk_overlap=int(_number("CHUNK_OVERLAP", "150", 0)),
+            top_k=int(_number("TOP_K", "5", 1)),
+            # Chroma's relevance scores are normalised to 0..1, so a threshold
+            # outside that range either filters nothing or filters everything.
+            score_threshold=_number("SCORE_THRESHOLD", "0.0", 0.0, 1.0),
             answer_model=os.getenv("ANSWER_MODEL", "claude-opus-5"),
             judge_model=os.getenv("JUDGE_MODEL", "claude-opus-5"),
-            max_tokens=int(os.getenv("MAX_TOKENS", "8000")),
+            max_tokens=int(_number("MAX_TOKENS", "8000", 1)),
             rerank_provider=rerank_provider,
             # `or` rather than a two-arg getenv: .env.example ships an empty
             # `RERANK_MODEL=` line, which must resolve to the provider default.
             rerank_model=(
                 os.getenv("RERANK_MODEL") or _DEFAULT_RERANK_MODELS[rerank_provider]
             ),
-            rerank_candidates=max(1, int(os.getenv("RERANK_CANDIDATES", "20"))),
+            rerank_candidates=int(_number("RERANK_CANDIDATES", "20", 1)),
             retrieval_mode=retrieval_mode,
-            rrf_k=max(1, int(os.getenv("RRF_K", "60"))),
-            bm25_k1=float(os.getenv("BM25_K1", "1.5")),
-            bm25_b=float(os.getenv("BM25_B", "0.75")),
+            rrf_k=int(_number("RRF_K", "60", 1)),
+            # Okapi BM25 is only defined for a non-negative k1, and b is a
+            # blend factor between no length normalisation and full.
+            bm25_k1=_number("BM25_K1", "1.5", 0.0),
+            bm25_b=_number("BM25_B", "0.75", 0.0, 1.0),
             citation_mode=citation_mode,
         )
 

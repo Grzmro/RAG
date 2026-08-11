@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
-from functools import cached_property
 
 from langchain_core.documents import Document
 
@@ -71,6 +71,8 @@ class Retriever:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.store = get_vectorstore(settings)
+        self._corpus_cache: tuple[dict[str, Document], BM25Index] | None = None
+        self._corpus_lock = threading.Lock()
         # Built eagerly so a bad RERANK_PROVIDER or a missing optional extra
         # surfaces where the API already turns it into a readable 503, rather
         # than from inside a request handler. The model itself still loads lazily.
@@ -82,23 +84,39 @@ class Retriever:
                 "The vector store is empty. Run `python -m rag.cli ingest` first."
             )
 
-    @cached_property
+    @property
     def _corpus(self) -> tuple[dict[str, Document], BM25Index]:
         """The whole collection, plus a BM25 index over it.
 
         Lazy: a dense-only run never reads the corpus back or pays to tokenize
         it. Cached per Retriever, and the API drops the Retriever after every
         ingest, so the index cannot outlive the collection it was built from.
+
+        Guarded by a lock rather than `functools.cached_property`, which holds
+        none: concurrent first requests would otherwise each read the whole
+        collection and build their own index, doubling the work and the peak
+        memory for a corpus that can be large.
         """
-        ids, texts, metadatas = all_chunks(self.store)
-        documents = {
-            chunk_id: Document(page_content=text, metadata=dict(metadata))
-            for chunk_id, text, metadata in zip(ids, texts, metadatas)
-        }
-        index = BM25Index.build(
-            ids, texts, k1=self.settings.bm25_k1, b=self.settings.bm25_b
-        )
-        return documents, index
+        if self._corpus_cache is None:
+            with self._corpus_lock:
+                if self._corpus_cache is None:  # another thread may have won
+                    ids, texts, metadatas = all_chunks(self.store)
+                    documents = {
+                        chunk_id: Document(
+                            page_content=text, metadata=dict(metadata)
+                        )
+                        for chunk_id, text, metadata in zip(ids, texts, metadatas)
+                    }
+                    self._corpus_cache = (
+                        documents,
+                        BM25Index.build(
+                            ids,
+                            texts,
+                            k1=self.settings.bm25_k1,
+                            b=self.settings.bm25_b,
+                        ),
+                    )
+        return self._corpus_cache
 
     def _above_threshold(self, score: float) -> bool:
         # The threshold is deliberately applied to vector scores, before fusion
