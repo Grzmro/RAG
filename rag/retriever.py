@@ -23,10 +23,15 @@ class RetrievedChunk:
     # Every stage records its own score rather than overwriting the one before:
     # a cosine similarity, a BM25 score, an RRF score and a cross-encoder logit
     # share no scale, so collapsing them into one number destroys all four.
-    # `score` is the dense 0..1 relevance, and is 0.0 for a lexical-only hit.
+    # `score` is the dense 0..1 relevance; it is only meaningful when
+    # `found_by_dense`, because a lexical-only hit was never scored densely.
     lexical_score: float | None = None
     fusion_score: float | None = None
     rerank_score: float | None = None
+    # Channel membership is recorded, not inferred from the score. Chroma can
+    # legitimately return 0.0 (and warns on out-of-range negatives), so reading
+    # `score > 0` as "dense found it" mislabels real dense hits as lexical-only.
+    found_by_dense: bool = True
 
     @property
     def ranking_score(self) -> float:
@@ -41,7 +46,7 @@ class RetrievedChunk:
         """Which retrieval channel(s) found this chunk."""
         if self.lexical_score is None:
             return "dense"
-        return "both" if self.score > 0 else "lexical"
+        return "both" if self.found_by_dense else "lexical"
 
     @property
     def source(self) -> str:
@@ -95,43 +100,67 @@ class Retriever:
         )
         return documents, index
 
-    def _dense(self, query: str, fetch_k: int) -> list[RetrievedChunk]:
-        hits = self.store.similarity_search_with_relevance_scores(query, k=fetch_k)
+    def _above_threshold(self, score: float) -> bool:
         # The threshold is deliberately applied to vector scores, before fusion
         # and reranking: a cutoff on either of those would need per-model
         # calibration. A lexical-only hit has no dense score to threshold.
+        return not (
+            self.settings.score_threshold > 0 and score < self.settings.score_threshold
+        )
+
+    def _dense_chunks(self, query: str, fetch_k: int) -> list[RetrievedChunk]:
+        """Every dense hit, unfiltered, numbered 1..N.
+
+        Indices must be distinct even here, before the final renumbering:
+        `chunk_id` falls back to `unknown::{index}` for documents whose metadata
+        lacks one, so a shared index would collapse them all onto a single key
+        and silently drop every hit but one during fusion.
+        """
         return [
-            RetrievedChunk(index=0, document=document, score=float(score))
-            for document, score in hits
-            if not (
-                self.settings.score_threshold > 0
-                and score < self.settings.score_threshold
+            RetrievedChunk(index=rank, document=document, score=float(score))
+            for rank, (document, score) in enumerate(
+                self.store.similarity_search_with_relevance_scores(query, k=fetch_k),
+                start=1,
             )
+        ]
+
+    def _dense(self, query: str, fetch_k: int) -> list[RetrievedChunk]:
+        return [
+            chunk
+            for chunk in self._dense_chunks(query, fetch_k)
+            if self._above_threshold(chunk.score)
         ]
 
     def _hybrid(self, query: str, fetch_k: int) -> list[RetrievedChunk]:
         """Fuse the dense and lexical channels by reciprocal rank."""
-        dense = self._dense(query, fetch_k)
+        # Keep every dense hit, not just the ones above the threshold. A chunk
+        # the threshold rejected can still be pulled back in by the lexical
+        # channel, and when that happens it must carry the score the dense
+        # channel actually gave it rather than being reported as never seen.
+        dense_hits = self._dense_chunks(query, fetch_k)
+        by_id = {chunk.chunk_id: chunk for chunk in dense_hits}
+        dense_ranking = [c.chunk_id for c in dense_hits if self._above_threshold(c.score)]
+
         documents, index = self._corpus
         lexical = index.search(query, fetch_k)
-
-        by_id = {chunk.chunk_id: chunk for chunk in dense}
-        lexical_scores = dict(lexical)
+        next_index = len(dense_hits)
         for chunk_id, score in lexical:
             existing = by_id.get(chunk_id)
             if existing is not None:
                 existing.lexical_score = score
             elif chunk_id in documents:
+                next_index += 1
                 by_id[chunk_id] = RetrievedChunk(
-                    index=0,
+                    index=next_index,
                     document=documents[chunk_id],
                     score=0.0,  # never scored by the dense channel
                     lexical_score=score,
+                    found_by_dense=False,
                 )
 
         # Dense ranking first so it breaks ties in fuse_rankings.
         fused = fuse_rankings(
-            [[c.chunk_id for c in dense], [chunk_id for chunk_id, _ in lexical]],
+            [dense_ranking, [chunk_id for chunk_id, _ in lexical]],
             k=self.settings.rrf_k,
         )
         ordered: list[RetrievedChunk] = []
@@ -140,7 +169,6 @@ class Retriever:
             if chunk is None:
                 continue
             chunk.fusion_score = rrf
-            chunk.lexical_score = lexical_scores.get(chunk_id, chunk.lexical_score)
             ordered.append(chunk)
         return ordered
 

@@ -237,6 +237,16 @@ class TestTokenizer:
     def test_lowercases_and_splits(self):
         assert tokenize("Atlas Ingest-Service") == ["atlas", "ingest", "service"]
 
+    def test_keeps_accented_and_non_latin_words_whole(self):
+        # An ASCII-only class shredded these into fragments, and the fragments
+        # then matched unrelated passages — worse than not matching at all.
+        assert tokenize("wydatków") == ["wydatków"]
+        assert tokenize("Zażółć gęślą jaźń") == ["zażółć", "gęślą", "jaźń"]
+        assert tokenize("über naïve café") == ["über", "naïve", "café"]
+
+    def test_underscore_separates_rather_than_joins(self):
+        assert tokenize("chunk_id") == ["chunk", "id"]
+
     def test_empty_input(self):
         assert tokenize("   ") == []
 
@@ -254,6 +264,24 @@ class TestBM25:
     def test_ranks_the_lexically_matching_chunk_first(self):
         hits = self._index().search("expense approval above 200", k=3)
         assert hits[0][0] == "expenses.md::0"
+
+    POLISH = {
+        "wydatki::0": "Wydatki powyżej 200 funtów wymagają zgody kierownika działu.",
+        "kuchnia::0": "Kuchnia biurowa sprzątana jest w każdy piątek.",
+    }
+
+    def _polish_index(self) -> BM25Index:
+        return BM25Index.build(list(self.POLISH), list(self.POLISH.values()))
+
+    def test_matches_accented_words_present_in_the_corpus(self):
+        assert self._polish_index().search("zgody kierownika", k=2)[0][0] == "wydatki::0"
+
+    def test_an_absent_inflected_form_matches_nothing_rather_than_the_wrong_chunk(self):
+        # Regression: an ASCII tokenizer split "wydatków" into ["wydatk", "w"],
+        # and the stray "w" matched "w każdy piątek" — ranking the kitchen
+        # passage first for a query about expenses. No match is the honest
+        # answer here: BM25 does no stemming, and "wydatków" is not in the text.
+        assert self._polish_index().search("wydatków", k=2) == []
 
     def test_exact_number_match_beats_topical_similarity(self):
         # The case dense retrieval loses: a bare figure with no semantic content.
@@ -502,6 +530,43 @@ class TestHybridRetrieval:
     def test_query_with_no_lexical_match_falls_back_to_dense_order(self):
         out = self._retriever().search("quantum chromodynamics")
         assert [c.chunk_id for c in out] == ["kitchen.md::0", "leave.md::0"]
+
+    def test_channel_is_recorded_not_inferred_from_a_zero_score(self):
+        # Chroma can legitimately return 0.0. Reading `score > 0` as "dense
+        # found it" reported a genuine both-channel hit as lexical-only.
+        settings = make_settings(retrieval_mode="hybrid", top_k=3)
+        dense = [("kitchen.md::0", 0.0), ("leave.md::0", 0.40)]
+        out = make_retriever(settings, dense, self.CORPUS).search("office kitchen Friday")
+        kitchen = next(c for c in out if c.chunk_id == "kitchen.md::0")
+        assert kitchen.score == 0.0
+        assert kitchen.channel == "both"
+
+    def test_thresholded_chunk_pulled_back_keeps_its_real_dense_score(self):
+        # Dense scored it 0.20 and the threshold dropped it from the dense
+        # ranking; the lexical channel brought it back. Reporting score 0.0 and
+        # channel "lexical" would state two things that are simply untrue.
+        settings = make_settings(retrieval_mode="hybrid", top_k=3, score_threshold=0.5)
+        dense = [("kitchen.md::0", 0.90), ("expenses.md::0", 0.20)]
+        out = make_retriever(settings, dense, self.CORPUS).search(
+            "expenses 200 pounds approval"
+        )
+        expenses = next(c for c in out if c.chunk_id == "expenses.md::0")
+        assert expenses.score == 0.20  # not 0.0 — dense really did score it
+        assert expenses.channel == "both"
+
+    def test_documents_without_chunk_id_metadata_do_not_collapse(self):
+        # `chunk_id` falls back to `unknown::{index}`. When every dense hit was
+        # built with index 0 they shared one key and all but one vanished.
+        settings = make_settings(retrieval_mode="hybrid", top_k=5)
+        retriever = make_retriever(settings, [], self.CORPUS)
+        bare = [
+            (Document(page_content=f"passage {i}", metadata={"source": "s.md"}), 0.9 - i / 10)
+            for i in range(3)
+        ]
+        retriever.store = _StubStore(bare)
+        chunks = retriever._dense_chunks("anything", fetch_k=3)
+        assert len({c.chunk_id for c in chunks}) == 3
+        assert len(retriever.search("anything")) == 3
 
 
 class TestJudgeOutputParsing:

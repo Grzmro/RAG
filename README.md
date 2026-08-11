@@ -193,7 +193,13 @@ Fusion is by **reciprocal rank**, not score — a cosine similarity and a BM25 s
 scale, so any weighted sum of the two would be tuning a meaningless constant. RRF asks each
 channel only for an ordering, which is why it needs no calibration. BM25 is implemented in
 `rag/hybrid.py` rather than pulled in as a dependency: it is one formula, and owning the
-tokenizer is what makes `£200` and `200` match the same term.
+tokenizer is what makes `£200` and `200` match the same term. Tokenization is Unicode-aware,
+so accented and non-Latin words survive intact.
+
+There is no stemming: the lexical channel matches surface forms only. On heavily inflected
+languages a query in one grammatical case will not match another (`wydatków` does not find
+`wydatki`), so the dense channel carries more of the load there. Matching nothing is the
+intended behaviour — a lexical channel that guesses is worse than one that abstains.
 
 Hybrid composes with reranking — retrieve wide on both channels, fuse, then let the
 cross-encoder narrow to `TOP_K`. The index is built from the chunks already in Chroma, so

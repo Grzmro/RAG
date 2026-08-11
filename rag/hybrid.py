@@ -23,17 +23,24 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Iterable, Sequence
 
-_TOKEN_RE = re.compile(r"[a-z0-9]+")
+# `[^\W_]` is word characters minus underscore, and `\w` is Unicode-aware for
+# str patterns — so accented and non-Latin letters survive. An ASCII-only class
+# like [a-z0-9]+ silently shreds them: `wydatków` becomes ["wydatk", "w"], and
+# that stray "w" then matches every unrelated passage containing it.
+_TOKEN_RE = re.compile(r"[^\W_]+")
 
 
 def tokenize(text: str) -> list[str]:
-    """Lowercase and split into alphanumeric terms.
+    """Case-fold and split into alphanumeric terms, Unicode included.
 
     Currency symbols and punctuation are dropped rather than kept, so `£200`,
     `200`, and `(200)` all reduce to the same token — the whole reason to run a
     lexical channel is to match figures like that verbatim.
+
+    `casefold` rather than `lower`: it folds case distinctions `lower` leaves
+    alone (German `ß` to `ss`, for one), which is what matching wants.
     """
-    return _TOKEN_RE.findall(text.lower())
+    return _TOKEN_RE.findall(text.casefold())
 
 
 @dataclass
