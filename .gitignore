@@ -8,3 +8,7 @@ __pycache__/
 eval/reports/
 .pytest_cache/
 .DS_Store
+
+# Private corpora — personal documents must never reach the repo
+data/private/
+.chroma-private/

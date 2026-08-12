@@ -33,6 +33,17 @@ CITED_QUESTION = "How long are production database credentials valid?"
 # exactly the shape of query the lexical channel exists for.
 LEXICAL_QUESTION = "45 days"
 
+# The questions above are about these documents specifically. Pointed at any
+# other corpus the walkthrough does not fail — it abstains its way through
+# every step while the commentary still claims a grounded answer was given.
+# Confidently narrating something that did not happen is the exact failure
+# this project exists to prevent, so the demo refuses to do it.
+REQUIRED_SOURCES = {
+    "employee-handbook.md",
+    "security-policy.md",
+    "atlas-product-spec.md",
+}
+
 
 def _heading(console: Console, number: int, title: str, why: str) -> None:
     console.print()
@@ -60,14 +71,27 @@ def preflight(settings: Settings, console: Console) -> bool:
     retrieval is the half that runs offline, and it is also the half with the
     most to show.
     """
-    from rag.store import collection_size, get_vectorstore
+    from rag.store import all_chunks, collection_size, get_vectorstore
 
     table = Table(title="Pre-flight", header_style="bold", show_lines=False)
     table.add_column("Check")
     table.add_column("Result")
 
-    indexed = collection_size(get_vectorstore(settings))
+    store = get_vectorstore(settings)
+    indexed = collection_size(store)
     table.add_row("indexed chunks", str(indexed) if indexed else "[red]0 — run `rag ingest` first[/]")
+
+    missing: set[str] = set()
+    if indexed:
+        _, _, metadatas = all_chunks(store)
+        present = {m.get("source") for m in metadatas}
+        missing = REQUIRED_SOURCES - present
+    table.add_row(
+        "collection",
+        settings.collection_name
+        if not missing
+        else f"[red]{settings.collection_name} — not the corpus these questions are about[/]",
+    )
 
     has_key = bool(os.getenv("ANTHROPIC_API_KEY"))
     table.add_row("ANTHROPIC_API_KEY", "set" if has_key else "[yellow]unset — offline steps only[/]")
@@ -86,6 +110,14 @@ def preflight(settings: Settings, console: Console) -> bool:
 
     if not indexed:
         raise RuntimeError("The vector store is empty. Run `rag ingest` before the demo.")
+    if missing:
+        raise RuntimeError(
+            f"Collection {settings.collection_name!r} is missing "
+            f"{', '.join(sorted(missing))}. The walkthrough asks scripted questions about "
+            "those documents; against another corpus it abstains through every step while "
+            "still narrating a grounded answer. Point DOCS_DIR / COLLECTION_NAME / "
+            "PERSIST_DIR back at the sample corpus (or unset them) and re-run."
+        )
     if has_key and not model_ok:
         raise RuntimeError(
             f"ANSWER_MODEL={settings.answer_model!r} is not a model this API key can reach "
