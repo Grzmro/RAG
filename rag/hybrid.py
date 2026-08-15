@@ -20,8 +20,8 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Sequence
 
 # `[^\W_]` is word characters minus underscore, and `\w` is Unicode-aware for
 # str patterns — so accented and non-Latin letters survive. An ASCII-only class
@@ -65,7 +65,7 @@ class BM25Index:
         texts: Sequence[str],
         k1: float = 1.5,
         b: float = 0.75,
-    ) -> "BM25Index":
+    ) -> BM25Index:
         docs = [tokenize(text) for text in texts]
         doc_freq: Counter[str] = Counter()
         for tokens in docs:
@@ -103,7 +103,7 @@ class BM25Index:
 
         idf = {term: self._idf(term) for term in set(terms)}
         scored: list[tuple[str, float]] = []
-        for chunk_id, tokens in zip(self.ids, self._docs):
+        for chunk_id, tokens in zip(self.ids, self._docs, strict=True):
             if not tokens:
                 continue
             counts = Counter(tokens)
@@ -121,9 +121,7 @@ class BM25Index:
         return scored[:k]
 
 
-def reciprocal_rank_fusion(
-    rankings: Iterable[Sequence[str]], k: int = 60
-) -> dict[str, float]:
+def reciprocal_rank_fusion(rankings: Iterable[Sequence[str]], k: int = 60) -> dict[str, float]:
     """Fuse ranked ID lists into one score per ID: sum of 1 / (k + rank).
 
     Rank-based rather than score-based on purpose — a cosine similarity and a
@@ -141,9 +139,7 @@ def reciprocal_rank_fusion(
     return scores
 
 
-def fuse_rankings(
-    rankings: Iterable[Sequence[str]], k: int = 60
-) -> list[tuple[str, float]]:
+def fuse_rankings(rankings: Iterable[Sequence[str]], k: int = 60) -> list[tuple[str, float]]:
     """`reciprocal_rank_fusion`, returned as a ranked list instead of a mapping.
 
     Ties break on the order IDs were first seen, which makes the dense channel —

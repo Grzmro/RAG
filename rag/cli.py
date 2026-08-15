@@ -1,11 +1,11 @@
 """Command line entry point.
 
-    python -m rag.cli ingest [--reset]
-    python -m rag.cli ask "your question" [-k 5] [--show-context]
-    python -m rag.cli eval [--questions eval/questions.yaml]
-    python -m rag.cli status
-    python -m rag.cli demo [--no-pause]
-    python -m rag.cli serve [--host 127.0.0.1] [--port 8000] [--reload]
+python -m rag.cli ingest [--reset]
+python -m rag.cli ask "your question" [-k 5] [--show-context]
+python -m rag.cli eval [--questions eval/questions.yaml]
+python -m rag.cli status
+python -m rag.cli demo [--no-pause]
+python -m rag.cli serve [--host 127.0.0.1] [--port 8000] [--reload]
 """
 
 from __future__ import annotations
@@ -157,9 +157,7 @@ def cmd_eval(args: argparse.Namespace, settings: Settings) -> int:
     if args.fail_under is not None:
         mean = summary.get("mean_groundedness")
         if mean is None or mean < args.fail_under:
-            console.print(
-                f"[red]Mean groundedness {mean} is below threshold {args.fail_under}.[/]"
-            )
+            console.print(f"[red]Mean groundedness {mean} is below threshold {args.fail_under}.[/]")
             return 1
     return 0
 
@@ -232,9 +230,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_ask = sub.add_parser("ask", help="Ask a question against the indexed documents")
     p_ask.add_argument("question")
     p_ask.add_argument("-k", type=int, default=None, help="Number of passages to retrieve")
-    p_ask.add_argument(
-        "--show-context", action="store_true", help="Print the retrieved passages"
-    )
+    p_ask.add_argument("--show-context", action="store_true", help="Print the retrieved passages")
     p_ask.set_defaults(func=cmd_ask)
 
     p_eval = sub.add_parser("eval", help="Run the groundedness evaluation loop")

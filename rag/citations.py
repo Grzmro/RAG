@@ -18,7 +18,8 @@ The tradeoff: the answer carries no inline markers, so the prose reads without
 
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from rag.retriever import RetrievedChunk
 
@@ -63,9 +64,7 @@ def answer_text(content: Any) -> str:
     return "".join(parts).strip()
 
 
-def verify_spans(
-    citations: Sequence[Any], chunks: Sequence[RetrievedChunk]
-) -> list[Any]:
+def verify_spans(citations: Sequence[Any], chunks: Sequence[RetrievedChunk]) -> list[Any]:
     """Return the citations whose span does not match the source text.
 
     This is the check that the marker mode cannot perform at all and that the

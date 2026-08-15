@@ -98,9 +98,7 @@ class GroundednessJudge:
         # rubric would penalise their absence. Attribution is verified in code
         # there instead — see `verify_spans`.
         self.system_prompt = (
-            JUDGE_SYSTEM_PROMPT_NATIVE
-            if settings.native_citations
-            else JUDGE_SYSTEM_PROMPT
+            JUDGE_SYSTEM_PROMPT_NATIVE if settings.native_citations else JUDGE_SYSTEM_PROMPT
         )
 
     def score(self, result: RAGAnswer) -> dict:
@@ -168,9 +166,7 @@ def evaluate_case(case: EvalCase, pipeline: RAGPipeline, judge: GroundednessJudg
     if spans_ok is False:
         flags.append("citation_span_mismatch")
     if not abstention_correct:
-        flags.append(
-            "should_have_abstained" if not case.answerable else "abstained_unexpectedly"
-        )
+        flags.append("should_have_abstained" if not case.answerable else "abstained_unexpectedly")
     if missing:
         flags.append("missing_expected_content")
     if retrieval_hit is False:
@@ -229,9 +225,7 @@ def summarize(results: list[CaseResult]) -> dict:
         "retrieval_recall_pct": pct(
             sum(bool(r.retrieval_hit) for r in with_recall), len(with_recall)
         ),
-        "must_contain_pass_pct": pct(
-            sum(not r.must_contain_missing for r in results), n
-        ),
+        "must_contain_pass_pct": pct(sum(not r.must_contain_missing for r in results), n),
     }
 
 

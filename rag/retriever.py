@@ -80,9 +80,7 @@ class Retriever:
 
     def ensure_indexed(self) -> None:
         if collection_size(self.store) == 0:
-            raise RuntimeError(
-                "The vector store is empty. Run `python -m rag.cli ingest` first."
-            )
+            raise RuntimeError("The vector store is empty. Run `python -m rag.cli ingest` first.")
 
     @property
     def _corpus(self) -> tuple[dict[str, Document], BM25Index]:
@@ -102,10 +100,8 @@ class Retriever:
                 if self._corpus_cache is None:  # another thread may have won
                     ids, texts, metadatas = all_chunks(self.store)
                     documents = {
-                        chunk_id: Document(
-                            page_content=text, metadata=dict(metadata)
-                        )
-                        for chunk_id, text, metadata in zip(ids, texts, metadatas)
+                        chunk_id: Document(page_content=text, metadata=dict(metadata))
+                        for chunk_id, text, metadata in zip(ids, texts, metadatas, strict=True)
                     }
                     self._corpus_cache = (
                         documents,
@@ -122,9 +118,7 @@ class Retriever:
         # The threshold is deliberately applied to vector scores, before fusion
         # and reranking: a cutoff on either of those would need per-model
         # calibration. A lexical-only hit has no dense score to threshold.
-        return not (
-            self.settings.score_threshold > 0 and score < self.settings.score_threshold
-        )
+        return not (self.settings.score_threshold > 0 and score < self.settings.score_threshold)
 
     def _dense_chunks(self, query: str, fetch_k: int) -> list[RetrievedChunk]:
         """Every dense hit, unfiltered, numbered 1..N.
@@ -220,7 +214,5 @@ def format_context(chunks: list[RetrievedChunk]) -> str:
     """Render retrieved chunks as the numbered context block sent to the model."""
     if not chunks:
         return "(no passages retrieved)"
-    blocks = [
-        f"[{c.index}] source: {c.source}\n{c.text.strip()}" for c in chunks
-    ]
+    blocks = [f"[{c.index}] source: {c.source}\n{c.text.strip()}" for c in chunks]
     return "\n\n---\n\n".join(blocks)
