@@ -18,9 +18,10 @@ table are calibrated against.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from dataclasses import replace
 from functools import cached_property
-from typing import TYPE_CHECKING, Callable, Sequence
+from typing import TYPE_CHECKING
 
 from rag.config import Settings
 
@@ -40,7 +41,7 @@ def candidate_count(settings: Settings, k: int) -> int:
     return max(k, settings.rerank_candidates) if settings.rerank_enabled else k
 
 
-def renumber(chunks: list["RetrievedChunk"]) -> list["RetrievedChunk"]:
+def renumber(chunks: list[RetrievedChunk]) -> list[RetrievedChunk]:
     """Reassign `index` 1..N, preserving order.
 
     Any stage that reorders or filters has to end here. `format_context` renders
@@ -51,8 +52,8 @@ def renumber(chunks: list["RetrievedChunk"]) -> list["RetrievedChunk"]:
 
 
 def rerank_chunks(
-    chunks: list["RetrievedChunk"], scores: Sequence[float], k: int
-) -> list["RetrievedChunk"]:
+    chunks: list[RetrievedChunk], scores: Sequence[float], k: int
+) -> list[RetrievedChunk]:
     """Order candidates by reranker score, truncate to `k`, renumber from 1.
 
     Renumbering is not cosmetic: `format_context` renders `[{index}]` and
@@ -65,9 +66,7 @@ def rerank_chunks(
     a no-op rather than a shuffle, and ties keep vector-search order.
     """
     if len(scores) != len(chunks):
-        raise ValueError(
-            f"Reranker returned {len(scores)} scores for {len(chunks)} candidates."
-        )
+        raise ValueError(f"Reranker returned {len(scores)} scores for {len(chunks)} candidates.")
     order = sorted(range(len(chunks)), key=lambda i: scores[i], reverse=True)
     return [
         replace(chunks[i], index=rank, rerank_score=float(scores[i]))
@@ -178,15 +177,12 @@ class LLMReranker:
         from rag.prompts import RERANK_SYSTEM_PROMPT, RERANK_USER_TEMPLATE
 
         listing = "\n\n".join(
-            f"[{i + 1}] {text.strip()[: self.SNIPPET_CHARS]}"
-            for i, text in enumerate(texts)
+            f"[{i + 1}] {text.strip()[: self.SNIPPET_CHARS]}" for i, text in enumerate(texts)
         )
         response = self._llm.invoke(
             [
                 SystemMessage(content=RERANK_SYSTEM_PROMPT),
-                HumanMessage(
-                    content=RERANK_USER_TEMPLATE.format(question=query, passages=listing)
-                ),
+                HumanMessage(content=RERANK_USER_TEMPLATE.format(question=query, passages=listing)),
             ]
         )
         try:
@@ -212,9 +208,7 @@ def build_reranker(settings: Settings) -> Reranker | None:
         try:
             import voyageai  # noqa: F401
         except ImportError as exc:  # pragma: no cover - optional extra
-            raise ImportError(
-                "RERANK_PROVIDER=voyage requires: pip install voyageai"
-            ) from exc
+            raise ImportError("RERANK_PROVIDER=voyage requires: pip install voyageai") from exc
 
         return VoyageReranker(model=settings.rerank_model)
 

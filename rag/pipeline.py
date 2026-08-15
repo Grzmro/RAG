@@ -93,9 +93,7 @@ class RAGPipeline:
                             *build_document_blocks(chunks),
                             {
                                 "type": "text",
-                                "text": ANSWER_USER_TEMPLATE_NATIVE.format(
-                                    question=question
-                                ),
+                                "text": ANSWER_USER_TEMPLATE_NATIVE.format(question=question),
                             },
                         ]
                     ),

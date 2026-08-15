@@ -8,17 +8,17 @@ from pathlib import Path
 import pytest
 from langchain_core.documents import Document
 
-from rag.config import Settings
-from rag.ingest import chunk_documents, load_and_chunk
-from rag.llm import parse_json_object
-from rag.loaders import discover_files
 from rag.citations import (
     answer_text,
     build_document_blocks,
     extract_citations,
     verify_spans,
 )
+from rag.config import Settings
 from rag.hybrid import BM25Index, fuse_rankings, reciprocal_rank_fusion, tokenize
+from rag.ingest import chunk_documents, load_and_chunk
+from rag.llm import parse_json_object
+from rag.loaders import discover_files
 from rag.pipeline import Citation, RAGPipeline
 from rag.rerank import build_reranker, candidate_count, ranking_to_scores, rerank_chunks
 from rag.retriever import RetrievedChunk, Retriever, format_context
@@ -99,9 +99,7 @@ class TestLoadResilience:
         (docs_dir / "broken.pdf").write_bytes(b"this is not a pdf")
 
         supported, _ = discover_files(docs_dir)
-        chunks, ingested, failed = load_and_chunk(
-            supported, make_settings(docs_dir=docs_dir)
-        )
+        chunks, ingested, failed = load_and_chunk(supported, make_settings(docs_dir=docs_dir))
 
         assert [p.name for p in ingested] == ["good.md"]
         assert [p.name for p, _ in failed] == ["broken.pdf"]
@@ -369,7 +367,7 @@ class TestNativeCitations:
 
     def test_duplicate_spans_are_collapsed(self):
         blocks = self._response()
-        found = extract_citations(blocks + [blocks[1]])
+        found = extract_citations([*blocks, blocks[1]])
         assert len(found) == 1
 
     def test_resolves_document_index_to_the_retrieved_chunk(self):
@@ -549,9 +547,7 @@ class TestHybridRetrieval:
         # channel "lexical" would state two things that are simply untrue.
         settings = make_settings(retrieval_mode="hybrid", top_k=3, score_threshold=0.5)
         dense = [("kitchen.md::0", 0.90), ("expenses.md::0", 0.20)]
-        out = make_retriever(settings, dense, self.CORPUS).search(
-            "expenses 200 pounds approval"
-        )
+        out = make_retriever(settings, dense, self.CORPUS).search("expenses 200 pounds approval")
         expenses = next(c for c in out if c.chunk_id == "expenses.md::0")
         assert expenses.score == 0.20  # not 0.0 — dense really did score it
         assert expenses.channel == "both"
@@ -635,9 +631,7 @@ class TestCorpusCache:
         assert len(builds) == 1
 
     def test_cache_is_reused_on_later_calls(self):
-        retriever = make_retriever(
-            make_settings(retrieval_mode="hybrid"), [], {"a::0": "text"}
-        )
+        retriever = make_retriever(make_settings(retrieval_mode="hybrid"), [], {"a::0": "text"})
         assert retriever._corpus is retriever._corpus
 
 

@@ -22,7 +22,7 @@ from rich.table import Table
 
 from rag.config import Settings
 from rag.rerank import renumber
-from rag.retriever import Retriever, RetrievedChunk
+from rag.retriever import RetrievedChunk, Retriever
 
 # Drawn from eval/questions.yaml, so every question here is one the evaluation
 # loop already scores — the demo and the metrics talk about the same cases.
@@ -47,7 +47,13 @@ REQUIRED_SOURCES = {
 
 def _heading(console: Console, number: int, title: str, why: str) -> None:
     console.print()
-    console.print(Panel(f"[bold]{title}[/]\n[dim]{why}[/]", title=f"Step {number}", border_style="cyan"))
+    console.print(
+        Panel(
+            f"[bold]{title}[/]\n[dim]{why}[/]",
+            title=f"Step {number}",
+            border_style="cyan",
+        )
+    )
 
 
 def _takeaway(console: Console, text: str) -> None:
@@ -79,7 +85,10 @@ def preflight(settings: Settings, console: Console) -> bool:
 
     store = get_vectorstore(settings)
     indexed = collection_size(store)
-    table.add_row("indexed chunks", str(indexed) if indexed else "[red]0 — run `rag ingest` first[/]")
+    table.add_row(
+        "indexed chunks",
+        str(indexed) if indexed else "[red]0 — run `rag ingest` first[/]",
+    )
 
     missing: set[str] = set()
     if indexed:
@@ -94,7 +103,10 @@ def preflight(settings: Settings, console: Console) -> bool:
     )
 
     has_key = bool(os.getenv("ANTHROPIC_API_KEY"))
-    table.add_row("ANTHROPIC_API_KEY", "set" if has_key else "[yellow]unset — offline steps only[/]")
+    table.add_row(
+        "ANTHROPIC_API_KEY",
+        "set" if has_key else "[yellow]unset — offline steps only[/]",
+    )
 
     model_ok, model_detail = (True, "") if not has_key else _check_model(settings.answer_model)
     table.add_row(
@@ -183,7 +195,8 @@ def step_abstention(console: Console, settings: Settings, number: int) -> None:
         console,
         number,
         "Declining is a first-class outcome",
-        "The corpus has no pricing in it. A RAG system that never declines is not grounded — it is lucky.",
+        "The corpus has no pricing in it. A RAG system that never declines is not "
+        "grounded — it is lucky.",
     )
     console.print(f"  [cyan]?[/] {UNANSWERABLE_QUESTION}\n")
     with console.status("[bold]retrieving and generating…"):
@@ -192,7 +205,8 @@ def step_abstention(console: Console, settings: Settings, number: int) -> None:
     console.print(f"  abstained: [bold]{result.abstained}[/]")
     _takeaway(
         console,
-        "Retrieval still returned passages — the model was asked to answer only from them, and refused.",
+        "Retrieval still returned passages — the model was asked to answer only from "
+        "them, and refused.",
     )
 
 
@@ -238,11 +252,14 @@ def step_native_citations(console: Console, settings: Settings, number: int) -> 
             f"[{citation.start_char_index}:{citation.end_char_index}] == cited_text  {mark}"
         )
     mismatched = verify_spans(result.citations, result.retrieved)
-    console.print(f"\n  dangling citations: [bold]{result.dangling_citations}[/]  "
-                  f"span mismatches: [bold]{len(mismatched)}[/]")
+    console.print(
+        f"\n  dangling citations: [bold]{result.dangling_citations}[/]  "
+        f"span mismatches: [bold]{len(mismatched)}[/]"
+    )
     _takeaway(
         console,
-        "A fabricated reference stops being expressible here, rather than being detected afterwards.",
+        "A fabricated reference stops being expressible here, rather than being "
+        "detected afterwards.",
     )
 
 
@@ -284,9 +301,13 @@ def step_hybrid(console: Console, settings: Settings, number: int) -> None:
     retriever = Retriever(hybrid)
     retriever.ensure_indexed()
 
-    console.print(f"  [cyan]?[/] {LEXICAL_QUESTION}   [dim](a bare figure — no semantics to match on)[/]\n")
+    console.print(
+        f"  [cyan]?[/] {LEXICAL_QUESTION}   [dim](a bare figure — no semantics to match on)[/]\n"
+    )
     with console.status("[bold]searching…"):
-        dense = renumber(retriever._dense(LEXICAL_QUESTION, hybrid.top_k))
+        dense = renumber(
+            retriever._dense(LEXICAL_QUESTION, hybrid.top_k)  # noqa: SLF001 - see above
+        )
         fused = retriever.search(LEXICAL_QUESTION)
 
     dense_ids = {chunk.chunk_id for chunk in dense}
@@ -368,9 +389,7 @@ def run_demo(settings: Settings, console: Console, pause: bool = True) -> int:
     if online:
         steps = [step_grounded, step_abstention, step_native_citations, *steps]
     else:
-        console.print(
-            "\n[yellow]No ANTHROPIC_API_KEY — running the retrieval steps only.[/]"
-        )
+        console.print("\n[yellow]No ANTHROPIC_API_KEY — running the retrieval steps only.[/]")
 
     failed = 0
     for number, step in enumerate(steps, start=1):
@@ -382,9 +401,7 @@ def run_demo(settings: Settings, console: Console, pause: bool = True) -> int:
             # surprise, and a wall of stack trace in front of an audience is
             # worse than a one-line apology and the next step.
             failed += 1
-            console.print(
-                f"\n  [red]This step could not run:[/] {type(exc).__name__}: {exc}"
-            )
+            console.print(f"\n  [red]This step could not run:[/] {type(exc).__name__}: {exc}")
             console.print("  [dim]continuing with the remaining steps[/]")
 
     console.print()

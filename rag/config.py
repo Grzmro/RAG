@@ -105,7 +105,7 @@ class Settings:
         return f"{self.rerank_provider}:{self.rerank_model or self.answer_model}"
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         provider = os.getenv("EMBEDDING_PROVIDER", "fastembed").strip().lower()
         if provider not in _DEFAULT_EMBEDDING_MODELS:
             raise ValueError(
@@ -135,9 +135,7 @@ class Settings:
             persist_dir=_path(os.getenv("PERSIST_DIR", ".chroma")),
             collection_name=os.getenv("COLLECTION_NAME", "rag_documents"),
             embedding_provider=provider,
-            embedding_model=os.getenv(
-                "EMBEDDING_MODEL", _DEFAULT_EMBEDDING_MODELS[provider]
-            ),
+            embedding_model=os.getenv("EMBEDDING_MODEL", _DEFAULT_EMBEDDING_MODELS[provider]),
             chunk_size=int(_number("CHUNK_SIZE", "900", 1)),
             chunk_overlap=int(_number("CHUNK_OVERLAP", "150", 0)),
             top_k=int(_number("TOP_K", "5", 1)),
@@ -150,9 +148,7 @@ class Settings:
             rerank_provider=rerank_provider,
             # `or` rather than a two-arg getenv: .env.example ships an empty
             # `RERANK_MODEL=` line, which must resolve to the provider default.
-            rerank_model=(
-                os.getenv("RERANK_MODEL") or _DEFAULT_RERANK_MODELS[rerank_provider]
-            ),
+            rerank_model=(os.getenv("RERANK_MODEL") or _DEFAULT_RERANK_MODELS[rerank_provider]),
             rerank_candidates=int(_number("RERANK_CANDIDATES", "20", 1)),
             retrieval_mode=retrieval_mode,
             rrf_k=int(_number("RRF_K", "60", 1)),

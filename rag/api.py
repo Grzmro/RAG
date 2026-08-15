@@ -197,9 +197,7 @@ def get_settings() -> Settings:
     try:
         return Settings.from_env()
     except ValueError as exc:  # unusable configuration, e.g. unknown provider
-        raise HTTPException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
-        ) from exc
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 
 
 def get_retriever(settings: Settings = Depends(get_settings)) -> Retriever:
@@ -268,9 +266,7 @@ def read_status(
         503: {"description": "The pipeline cannot be built (e.g. missing ANTHROPIC_API_KEY)"},
     },
 )
-def ask(
-    payload: AskRequest, pipeline: RAGPipeline = Depends(get_pipeline)
-) -> AskResponse:
+def ask(payload: AskRequest, pipeline: RAGPipeline = Depends(get_pipeline)) -> AskResponse:
     try:
         pipeline.retriever.ensure_indexed()
     except RuntimeError as exc:
