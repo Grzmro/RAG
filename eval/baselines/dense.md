@@ -1,0 +1,40 @@
+# RAG evaluation report
+
+Generated: 2026-08-15T09:04:16+00:00
+Answer model: `claude-haiku-4-5-20251001` · Judge model: `claude-sonnet-5` · top_k=5 · chunk=900/150 · embeddings=`fastembed:BAAI/bge-small-en-v1.5` · rerank=`none` · retrieval=`dense` · citations=`markers`
+
+## Summary
+
+| Metric | Value |
+| --- | --- |
+| questions | 15 |
+| mean groundedness | 5.0 |
+| grounded rate pct | 100.0 |
+| hallucination rate pct | 0.0 |
+| flagged rate pct | 0.0 |
+| citation validity pct | 100.0 |
+| citation span integrity pct | 0.0 |
+| dangling citation count | 0 |
+| abstention accuracy pct | 100.0 |
+| retrieval recall pct | 100.0 |
+| must contain pass pct | 100.0 |
+
+## Per-question results
+
+| ID | Groundedness | Verdict | Cited sources | Flags |
+| --- | --- | --- | --- | --- |
+| hb-annual-leave | 5 | grounded | employee-handbook.md | — |
+| hb-expense-approval | 5 | grounded | employee-handbook.md | — |
+| hb-review-promotion | 5 | grounded | employee-handbook.md | — |
+| hb-onsite-days | 5 | grounded | employee-handbook.md | — |
+| atlas-batch-limit | 5 | grounded | atlas-product-spec.md | — |
+| atlas-retries | 5 | grounded | atlas-product-spec.md | — |
+| atlas-dlq-retention | 5 | grounded | atlas-product-spec.md | — |
+| atlas-rate-limit | 5 | grounded | atlas-product-spec.md | — |
+| sec-incident-report | 5 | grounded | security-policy.md | — |
+| sec-prod-credentials | 5 | grounded | security-policy.md | — |
+| cross-atlas-classification | 5 | grounded | security-policy.md | — |
+| unanswerable-salary-bands | 5 | grounded | — | — |
+| unanswerable-atlas-pricing | 5 | grounded | — | — |
+| unanswerable-ceo | 5 | grounded | — | — |
+| near-miss-vacation-carryover-deadline | 5 | grounded | employee-handbook.md | — |

@@ -293,6 +293,13 @@ Any question that trips a check is listed in the report with its flags, the judg
 reasoning, and the specific unsupported claims — so a regression points at a cause,
 not just a lower number.
 
+`eval/baselines/` holds one committed run per retrieval configuration — dense and hybrid,
+each with reranking off and on — so a change has something to regress against. On the
+sample corpus all four score identically: 3 documents and 11 chunks against `top_k=5`
+returns nearly half the corpus per question, so recall is satisfied before retrieval
+quality can matter. They are a floor to hold, not evidence that the configurations are
+equivalent — see [`eval/baselines/README.md`](eval/baselines/README.md).
+
 ---
 
 ## Layout
