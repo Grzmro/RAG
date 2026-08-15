@@ -1,0 +1,165 @@
+# Discrimination set — built to separate retrieval configurations, not to pass.
+#
+# `questions.yaml` is the regression set: broad coverage, and every configuration
+# scores 100% on it because 3 documents and 11 chunks against top_k=5 return half
+# the corpus per question. Recall is satisfied before retrieval quality matters.
+#
+# This set attacks that. Same corpus, but every question is chosen so that the
+# passage holding the answer is one a dense-only channel can plausibly rank below
+# the cut, or so that a semantically closer passage says something else:
+#
+#   lex-*     bare identifiers and figures — header names, topic names, policy IDs,
+#             backoff intervals. Almost no semantic content for an embedding to
+#             hold on to; the exact form of the token is the whole query.
+#   trap-*    a figure or phrase that occurs more than once in the corpus with
+#             different meanings (14 days, 5 minutes, "two days", "review").
+#             Retrieving the plausible passage instead of the right one is wrong
+#             in a way that source-level recall cannot see.
+#   cross-*   the answer requires joining a fact in one document to a definition
+#             in another, so a single well-ranked passage is never enough.
+#   unans-*   the retrieved passage very nearly contains the answer — it names the
+#             header, the replica count, the p95 — but not the figure asked for.
+#             Retrieval succeeds and abstention still has to happen.
+#
+# Note that `retrieval_recall_pct` checks the expected *source file*, not the
+# chunk, so it stays near 100% here by construction. The metrics with room to move
+# are `must_contain_pass_pct` (the fact is unreachable if the right chunk missed
+# the cut), `abstention_accuracy_pct`, and groundedness.
+#
+# fields: as eval/questions.yaml
+
+# --- Exact tokens: the lexical channel's reason to exist -----------------------
+
+- id: lex-atlas-key-header
+  question: Which HTTP header carries the Atlas API key, and how often is that key rotated?
+  answerable: true
+  expected_sources: [atlas-product-spec.md]
+  must_contain: ["X-Atlas-Key", "90 days"]
+  note: A header name is a bare token; embeddings have nothing to generalise from.
+
+- id: lex-dlq-topic-name
+  question: What is the exact name of the Kafka topic that rejected Atlas records are written to?
+  answerable: true
+  expected_sources: [atlas-product-spec.md]
+  must_contain: ["atlas.dlq.v1"]
+  note: Dotted identifier — the tokenizer splits it, so all three parts must match.
+
+- id: lex-policy-id
+  question: What is the policy ID of the information security policy, and who approved it?
+  answerable: true
+  expected_sources: [security-policy.md]
+  must_contain: ["SEC-001", "Security Steering Group"]
+  note: An identifier with no semantic content, in a document header rather than prose.
+
+- id: lex-v0-removal
+  question: When were the /v0 Atlas endpoints removed?
+  answerable: true
+  expected_sources: [atlas-product-spec.md]
+  must_contain: ["1 January 2025"]
+  note: Buried in the deprecation section; the query terms are a path and a verb.
+
+- id: lex-backoff-window
+  question: What is the starting and the maximum backoff interval for an Atlas retry?
+  answerable: true
+  expected_sources: [atlas-product-spec.md]
+  must_contain: ["250", "30 seconds"]
+  note: Two figures in a subordinate clause of a sentence about retry counts.
+
+- id: lex-remote-waiver-distance
+  question: How far from the London office must an employee live before on-site attendance can be waived?
+  answerable: true
+  expected_sources: [employee-handbook.md]
+  must_contain: ["150"]
+  note: A single figure attached to an exception, not to the rule it modifies.
+
+# --- Distractors: the same figure or phrase, a different meaning ---------------
+
+- id: trap-training-deadline
+  question: How long does a new joiner have to complete security training?
+  answerable: true
+  expected_sources: [security-policy.md]
+  must_contain: ["14 days"]
+  note: "14 days is also the dead-letter retention in the Atlas spec — wrong document, same number."
+
+- id: trap-device-lock
+  question: After how long idle must an employee device lock itself?
+  answerable: true
+  expected_sources: [security-policy.md]
+  must_contain: ["5 minutes"]
+  note: Competes with 5 carried-over leave days, 5 retries and 5 working days.
+
+- id: trap-rate-limit-increase
+  question: How quickly does an approved Atlas rate-limit increase take effect, and who is it requested through?
+  answerable: true
+  expected_sources: [atlas-product-spec.md]
+  must_contain: ["business days", "account manager"]
+  note: '"two business days" against "two days per month" and "two consecutive months".'
+
+- id: trap-review-cadences
+  question: How often is access to systems reviewed, and how often is a third-party security review repeated?
+  answerable: true
+  expected_sources: [security-policy.md]
+  must_contain: ["quarterly", "annual"]
+  note: Two cadences, both in passages about "review", in the same document.
+
+- id: trap-who-approves
+  question: Who must approve access to Restricted data, and who approves a request to work from another country?
+  answerable: true
+  expected_sources: [security-policy.md, employee-handbook.md]
+  must_contain: ["Security Steering Group", "People Operations"]
+  note: "\"Who approves\" is closest to the expenses passage, which is the wrong answer to both halves."
+
+# --- Cross-document: one passage is never enough -------------------------------
+
+- id: cross-atlas-key-classification
+  question: An Atlas API key is a credential. Which data classification does it fall under, and what is needed to access data at that level?
+  answerable: true
+  expected_sources: [security-policy.md, atlas-product-spec.md]
+  must_contain: ["Restricted", "Security Steering Group"]
+  note: The spec supplies the credential, the policy supplies the class and its rule.
+
+- id: cross-vendor-atlas-telemetry
+  question: If a third-party service were to process the telemetry Atlas ingests, what must it pass first and what evidence is accepted?
+  answerable: true
+  expected_sources: [security-policy.md, atlas-product-spec.md]
+  must_contain: ["security review", "SOC 2"]
+  note: Requires knowing telemetry is Confidential before the vendor rule applies.
+
+- id: cross-escalation-paths
+  question: Who chairs the review triggered by two consecutive months of availability SLO breach, and where is a suspected security incident reported instead?
+  answerable: true
+  expected_sources: [atlas-product-spec.md, security-policy.md]
+  must_contain: ["Head of Platform", "security@northwind.example"]
+  note: Two near-identical escalation concepts that resolve in different documents.
+
+# --- Retrieval succeeds, the answer still is not there -------------------------
+
+- id: unans-retry-after-value
+  question: What value does Atlas put in the Retry-After header when it returns a 429?
+  answerable: false
+  note: The header is named in the retrieved passage; its value never is.
+
+- id: unans-dlq-replicas
+  question: How many replicas does the Atlas dead-letter topic have?
+  answerable: false
+  note: "\"Three replicas\" is stated, but for lake durability, not the DLQ."
+
+- id: unans-p99-latency
+  question: What is the p99 ingestion latency objective for Atlas?
+  answerable: false
+  note: p95 is given in the same list; p99 is not.
+
+- id: unans-encryption-algorithm
+  question: Which encryption algorithm is used for Confidential data at rest?
+  answerable: false
+  note: The passage says encrypted at rest and stops there.
+
+- id: unans-sick-note-validity
+  question: How long does a medical certificate remain valid for an extended sick-leave absence?
+  answerable: false
+  note: A certificate is required; nothing is said about how long it lasts.
+
+- id: unans-early-laptop-refresh
+  question: Under what circumstances can a laptop be replaced before the standard refresh cycle ends?
+  answerable: false
+  note: The cycle is stated; exceptions to it are not.
