@@ -293,12 +293,26 @@ Any question that trips a check is listed in the report with its flags, the judg
 reasoning, and the specific unsupported claims — so a regression points at a cause,
 not just a lower number.
 
-`eval/baselines/` holds one committed run per retrieval configuration — dense and hybrid,
-each with reranking off and on — so a change has something to regress against. On the
-sample corpus all four score identically: 3 documents and 11 chunks against `top_k=5`
-returns nearly half the corpus per question, so recall is satisfied before retrieval
-quality can matter. They are a floor to hold, not evidence that the configurations are
-equivalent — see [`eval/baselines/README.md`](eval/baselines/README.md).
+There are two question sets. `eval/questions.yaml` is the regression set above.
+`eval/questions-hard.yaml` is a discrimination set — bare identifiers, figures that recur
+across documents with different meanings, cross-document chains, and unanswerable
+questions whose retrieved passage nearly contains the answer. It exists to break dense
+retrieval rather than to be passed:
+
+```bash
+uv run rag eval --questions eval/questions-hard.yaml
+```
+
+`eval/baselines/` holds a committed run of both sets against all four retrieval
+configurations. Every configuration scores 100% on the regression set — 3 documents and 11
+chunks against `top_k=5` returns nearly half the corpus per question, so recall is
+satisfied before retrieval quality can matter. The hard set does separate them: dense-only
+retrieval abstains on a cross-document question that hybrid answers, because the chunk
+naming the second approver enters the ranking through the lexical channel alone. Notably
+`retrieval_recall_pct` reports 100% for both, since it checks the source file and the right
+file was returned either way — the wrong chunk of it. See
+[`eval/baselines/README.md`](eval/baselines/README.md) for the retrieval trace and for what
+the numbers do not establish.
 
 ---
 

@@ -1,0 +1,558 @@
+{
+  "summary": {
+    "questions": 20,
+    "mean_groundedness": 4.95,
+    "grounded_rate_pct": 100.0,
+    "hallucination_rate_pct": 0.0,
+    "flagged_rate_pct": 0.0,
+    "citation_validity_pct": 100.0,
+    "citation_span_integrity_pct": 0.0,
+    "dangling_citation_count": 0,
+    "abstention_accuracy_pct": 100.0,
+    "retrieval_recall_pct": 100.0,
+    "must_contain_pass_pct": 100.0
+  },
+  "settings": {
+    "answer_model": "claude-haiku-4-5-20251001",
+    "judge_model": "claude-sonnet-5",
+    "embedding_provider": "fastembed",
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "top_k": 5,
+    "chunk_size": 900,
+    "chunk_overlap": 150,
+    "rerank_provider": "none",
+    "rerank_model": "",
+    "rerank_candidates": 20,
+    "retrieval_mode": "hybrid",
+    "rrf_k": 60,
+    "citation_mode": "markers"
+  },
+  "results": [
+    {
+      "id": "lex-atlas-key-header",
+      "question": "Which HTTP header carries the Atlas API key, and how often is that key rotated?",
+      "answer": "The Atlas API key is passed in the `X-Atlas-Key` header [1], and keys are rotated automatically every 90 days [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both claims are explicitly stated in passage 1 and correctly cited.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "lex-dlq-topic-name",
+      "question": "What is the exact name of the Kafka topic that rejected Atlas records are written to?",
+      "answer": "The exact name of the Kafka topic that rejected Atlas records are written to is `atlas.dlq.v1` [2].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The claim matches passage 2 exactly, which states rejected records are written to the dead-letter topic 'atlas.dlq.v1'. Citation is correctly attributed.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "lex-policy-id",
+      "question": "What is the policy ID of the information security policy, and who approved it?",
+      "answer": "The policy ID is SEC-001 [1], and it was approved by the Security Steering Group on 20 January 2025 [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "security-policy.md",
+        "atlas-product-spec.md"
+      ],
+      "cited_sources": [
+        "security-policy.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both claims are explicitly stated in passage 1 and correctly cited.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "lex-v0-removal",
+      "question": "When were the /v0 Atlas endpoints removed?",
+      "answer": "The `/v0` endpoints were removed on 1 January 2025. [1]",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The single claim is explicitly stated in passage 1 and correctly cited.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "lex-backoff-window",
+      "question": "What is the starting and the maximum backoff interval for an Atlas retry?",
+      "answer": "The starting backoff interval for an Atlas retry is 250 ms, and the maximum is 30 seconds [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both claims are explicitly stated in passage 1 with correct citation.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "lex-remote-waiver-distance",
+      "question": "How far from the London office must an employee live before on-site attendance can be waived?",
+      "answer": "An employee must live more than 150 km from the London office before on-site attendance can be waived [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "employee-handbook.md",
+        "security-policy.md"
+      ],
+      "cited_sources": [
+        "employee-handbook.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The single claim is explicitly supported by passage 1, and the citation is correct.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "trap-training-deadline",
+      "question": "How long does a new joiner have to complete security training?",
+      "answer": "A new joiner has 14 days to complete security training [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "security-policy.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "security-policy.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The claim matches passage 1 exactly and is correctly cited.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "trap-device-lock",
+      "question": "After how long idle must an employee device lock itself?",
+      "answer": "An employee device must lock after [1] **5 minutes idle** [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "security-policy.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "security-policy.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The single claim matches passage [1] exactly, and the citation is correctly attributed.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "trap-rate-limit-increase",
+      "question": "How quickly does an approved Atlas rate-limit increase take effect, and who is it requested through?",
+      "answer": "Rate-limit increases are requested through the customer's account manager and take effect within two business days. [1]",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both claims are directly and accurately stated in passage 1, and the citation correctly attributes the sentence.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "trap-review-cadences",
+      "question": "How often is access to systems reviewed, and how often is a third-party security review repeated?",
+      "answer": "Access to systems is reviewed quarterly [2]. Third-party security reviews are repeated annually [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "security-policy.md",
+        "atlas-product-spec.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "security-policy.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both claims are directly and correctly supported by their cited passages.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "trap-who-approves",
+      "question": "Who must approve access to Restricted data, and who approves a request to work from another country?",
+      "answer": "Access to Restricted data requires named approval from the Security Steering Group [1]. Requests to work from a country other than the employee's country of employment must be approved by People Operations [4].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "security-policy.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "security-policy.md",
+        "employee-handbook.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both claims are explicitly stated in the cited passages with correct attribution.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "cross-atlas-key-classification",
+      "question": "An Atlas API key is a credential. Which data classification does it fall under, and what is needed to access data at that level?",
+      "answer": "Atlas API keys are credentials and fall under the **Restricted** classification [1]. Access to Restricted data requires named approval from the Security Steering Group [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "security-policy.md",
+        "atlas-product-spec.md"
+      ],
+      "cited_sources": [
+        "security-policy.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "All claims are directly supported by passage 1, which lists credentials under Restricted classification and specifies the approval requirement.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "cross-vendor-atlas-telemetry",
+      "question": "If a third-party service were to process the telemetry Atlas ingests, what must it pass first and what evidence is accepted?",
+      "answer": "If a third-party service were to process Atlas telemetry, it must pass a security review before procurement [2]. The accepted evidence includes SOC 2 Type II or ISO 27001 certification, sub-processor lists, and data residency documentation [2].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md"
+      ],
+      "cited_sources": [
+        "security-policy.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 4,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "All claims are supported by passage 2, though the link to Atlas telemetry being Confidential (passage 3) is not cited, making citations slightly incomplete but not incorrect.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "cross-escalation-paths",
+      "question": "Who chairs the review triggered by two consecutive months of availability SLO breach, and where is a suspected security incident reported instead?",
+      "answer": "The Head of Platform chairs the formal incident review triggered by two consecutive months of availability SLO breach [2]. Suspected security incidents are reported to `security@northwind.example` [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "security-policy.md",
+        "atlas-product-spec.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both claims are directly supported by the cited passages, and the citations are correctly attributed.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "unans-retry-after-value",
+      "question": "What value does Atlas put in the Retry-After header when it returns a 429?",
+      "answer": "INSUFFICIENT_CONTEXT: The passages state that Atlas returns HTTP 429 with a `Retry-After` header when rate limits are exceeded [3], but they do not specify what value is placed in that header.",
+      "answerable": false,
+      "abstained": true,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": null,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The answer correctly abstains, noting the header is mentioned but its value is not specified anywhere in the passages, which is accurate.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "unans-dlq-replicas",
+      "question": "How many replicas does the Atlas dead-letter topic have?",
+      "answer": "INSUFFICIENT_CONTEXT: The passages specify that Atlas data durability includes three replicas across two availability zones [3], but do not state how many replicas the dead-letter topic `atlas.dlq.v1` specifically has.",
+      "answerable": false,
+      "abstained": true,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": null,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The answer correctly abstains, citing the only relevant replica information (general SLO) while accurately noting it does not address the DLQ specifically.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "unans-p99-latency",
+      "question": "What is the p99 ingestion latency objective for Atlas?",
+      "answer": "INSUFFICIENT_CONTEXT: The passages specify the p95 ingestion latency objective (under 90 seconds) [2] but do not state a p99 latency objective.",
+      "answerable": false,
+      "abstained": true,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": null,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The answer correctly abstains, noting only p95 is defined and no p99 objective exists in the passages, which is accurate given the retrieved SLO section.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "unans-encryption-algorithm",
+      "question": "Which encryption algorithm is used for Confidential data at rest?",
+      "answer": "INSUFFICIENT_CONTEXT: The passages state that Confidential data must be \"encrypted at rest\" [1], but do not specify which encryption algorithm is used.",
+      "answerable": false,
+      "abstained": true,
+      "retrieved_sources": [
+        "security-policy.md",
+        "atlas-product-spec.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "security-policy.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": null,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The answer correctly abstains, citing the relevant passage for the encryption-at-rest requirement while noting the absence of algorithm specifics, which matches the provided context.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "unans-sick-note-validity",
+      "question": "How long does a medical certificate remain valid for an extended sick-leave absence?",
+      "answer": "INSUFFICIENT_CONTEXT: The passages do not specify how long a medical certificate remains valid for extended sick-leave absences; they only require that a note from a registered practitioner be submitted for absences longer than three consecutive working days.",
+      "answerable": false,
+      "abstained": true,
+      "retrieved_sources": [
+        "employee-handbook.md",
+        "security-policy.md",
+        "atlas-product-spec.md"
+      ],
+      "cited_sources": [],
+      "dangling_citations": [],
+      "retrieval_hit": null,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The answer correctly abstains since no passage specifies certificate validity duration, and accurately summarizes the actual rule stated in passage 1.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "unans-early-laptop-refresh",
+      "question": "Under what circumstances can a laptop be replaced before the standard refresh cycle ends?",
+      "answer": "INSUFFICIENT_CONTEXT: The passages do not describe circumstances under which a laptop can be replaced before the standard 36-month refresh cycle ends.",
+      "answerable": false,
+      "abstained": true,
+      "retrieved_sources": [
+        "employee-handbook.md",
+        "security-policy.md",
+        "atlas-product-spec.md"
+      ],
+      "cited_sources": [],
+      "dangling_citations": [],
+      "retrieval_hit": null,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The answer correctly abstains since no passage specifies early replacement circumstances, and passage 1 confirms the 36-month cycle without exceptions.",
+      "flagged": false,
+      "flags": []
+    }
+  ]
+}
