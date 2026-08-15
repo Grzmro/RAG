@@ -1,0 +1,102 @@
+# Curated evaluation set.
+#
+# answerable: false marks questions the corpus deliberately cannot answer — the
+# assistant is expected to abstain. These are the strongest hallucination probes.
+#
+# fields:
+#   id, question            (required)
+#   answerable              default true
+#   expected_sources        retrieval recall check (any-of)
+#   must_contain            substrings the answer must include (case-insensitive)
+#   note                    what this case is probing
+
+- id: hb-annual-leave
+  question: How many days of paid annual leave do full-time employees get, and how many can be carried over?
+  answerable: true
+  expected_sources: [employee-handbook.md]
+  must_contain: ["28", "5"]
+  note: Two numbers from one passage — checks exact figure reproduction.
+
+- id: hb-expense-approval
+  question: Who has to approve an expense claim of £350?
+  answerable: true
+  expected_sources: [employee-handbook.md]
+  must_contain: ["department head"]
+  note: Requires applying a threshold rule rather than quoting it.
+
+- id: hb-review-promotion
+  question: In which review cycle are promotion decisions made?
+  answerable: true
+  expected_sources: [employee-handbook.md]
+  must_contain: ["April"]
+
+- id: hb-onsite-days
+  question: How often are employees expected in the London office?
+  answerable: true
+  expected_sources: [employee-handbook.md]
+  must_contain: ["two days per month"]
+
+- id: atlas-batch-limit
+  question: What is the maximum payload size and record count for a single Atlas batch request?
+  answerable: true
+  expected_sources: [atlas-product-spec.md]
+  must_contain: ["50 MB", "100,000"]
+
+- id: atlas-retries
+  question: How many times does Atlas retry a transient downstream failure, and what happens after that?
+  answerable: true
+  expected_sources: [atlas-product-spec.md]
+  must_contain: ["5", "failed"]
+
+- id: atlas-dlq-retention
+  question: How long are rejected records kept in the dead-letter topic?
+  answerable: true
+  expected_sources: [atlas-product-spec.md]
+  must_contain: ["14 days"]
+
+- id: atlas-rate-limit
+  question: What happens when a tenant exceeds the Atlas batch rate limit?
+  answerable: true
+  expected_sources: [atlas-product-spec.md]
+  must_contain: ["429"]
+
+- id: sec-incident-report
+  question: How quickly must a suspected security incident be reported, and how quickly is a post-incident review published?
+  answerable: true
+  expected_sources: [security-policy.md]
+  must_contain: ["one hour", "5 working days"]
+
+- id: sec-prod-credentials
+  question: How long are production database credentials valid?
+  answerable: true
+  expected_sources: [security-policy.md]
+  must_contain: ["8 hours"]
+
+- id: cross-atlas-classification
+  question: What data classification applies to customer telemetry ingested through Atlas, and how long is it retained?
+  answerable: true
+  expected_sources: [security-policy.md, atlas-product-spec.md]
+  must_contain: ["Confidential", "24 months"]
+  note: Cross-document — the answer lives in the security policy but names an Atlas concept.
+
+- id: unanswerable-salary-bands
+  question: What are the salary bands for a senior data engineer at Northwind Analytics?
+  answerable: false
+  note: Plausible HR question with no supporting passage — should abstain.
+
+- id: unanswerable-atlas-pricing
+  question: How much does Atlas cost per million ingested records?
+  answerable: false
+  note: Pricing is never stated in the spec.
+
+- id: unanswerable-ceo
+  question: Who is the CEO of Northwind Analytics and when was the company founded?
+  answerable: false
+  note: Tempting for the model to answer from general priors.
+
+- id: near-miss-vacation-carryover-deadline
+  question: If I carry unused leave into next year, is there a deadline to use it, and does the learning budget roll over too?
+  answerable: true
+  expected_sources: [employee-handbook.md]
+  must_contain: ["31 March"]
+  note: Two-part question; the second part is an explicit negative in the source.
