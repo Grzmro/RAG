@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # The evaluation job spends API credits, so it never runs on a push. Trigger
+  # it by hand when a retrieval or prompt change needs its numbers checked.
+  workflow_dispatch:
+    inputs:
+      fail_under:
+        description: "Minimum mean groundedness (1-5) the run must reach"
+        default: "4.0"
+        required: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: ruff check
+        run: uv run ruff check .
+      - name: ruff format
+        run: uv run ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor declared in requires-python, and the version development
+        # happens on. A floor nobody tests is a floor nobody knows is true.
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync --locked
+      # The suite makes no API calls and touches no network: no key is set
+      # here on purpose, so a test that quietly starts needing one fails.
+      - run: uv run pytest
+
+  evaluate:
+    # Not part of the PR gate: it needs a funded API key and its score depends
+    # on a model, so it would make the gate both expensive and non-deterministic.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: evaluation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Ingest the sample corpus
+        run: uv run rag ingest --reset
+      - name: Groundedness evaluation
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: uv run rag eval --fail-under "${{ inputs.fail_under }}"
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: eval/reports/
+          if-no-files-found: warn

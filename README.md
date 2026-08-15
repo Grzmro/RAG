@@ -325,6 +325,22 @@ Run the tests (no API calls, no network):
 uv run pytest
 ```
 
+Lint and formatting are one tool:
+
+```bash
+uv run ruff check . && uv run ruff format --check .
+```
+
+CI runs both, plus the suite on Python 3.10 and 3.13 — the floor declared in
+`requires-python` and the version development happens on. No API key is present in
+that job, deliberately: a test that quietly starts needing one should fail.
+
+The groundedness evaluation is **not** on the PR gate — it costs API credits and its
+score comes from a model, which is not what a required check should depend on. It runs
+from the Actions tab (`workflow_dispatch`), takes `--fail-under` as an input, needs an
+`ANTHROPIC_API_KEY` secret in the `evaluation` environment, and uploads its report as a
+build artifact.
+
 `pyproject.toml` is the single source of truth for dependencies and `uv.lock` pins the
 exact resolved set — commit both. If a consumer needs a `requirements.txt`, generate one
 with `uv export --no-dev --format requirements-txt > requirements.txt`.
