@@ -1,0 +1,426 @@
+{
+  "summary": {
+    "questions": 15,
+    "mean_groundedness": 5.0,
+    "grounded_rate_pct": 100.0,
+    "hallucination_rate_pct": 0.0,
+    "flagged_rate_pct": 0.0,
+    "citation_validity_pct": 100.0,
+    "citation_span_integrity_pct": 0.0,
+    "dangling_citation_count": 0,
+    "abstention_accuracy_pct": 100.0,
+    "retrieval_recall_pct": 100.0,
+    "must_contain_pass_pct": 100.0
+  },
+  "settings": {
+    "answer_model": "claude-opus-5",
+    "judge_model": "claude-opus-5",
+    "embedding_provider": "fastembed",
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "top_k": 5,
+    "chunk_size": 900,
+    "chunk_overlap": 150,
+    "rerank_provider": "fastembed",
+    "rerank_model": "Xenova/ms-marco-MiniLM-L-6-v2",
+    "rerank_candidates": 20,
+    "retrieval_mode": "dense",
+    "rrf_k": 60,
+    "citation_mode": "markers"
+  },
+  "results": [
+    {
+      "id": "hb-annual-leave",
+      "question": "How many days of paid annual leave do full-time employees get, and how many can be carried over?",
+      "answer": "Full-time employees receive 28 days of paid annual leave per calendar year, on top of public holidays in their country of employment [1]. Up to 5 unused days may be carried into the following year, and those carried-over days must be used before 31 March [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "employee-handbook.md",
+        "security-policy.md"
+      ],
+      "cited_sources": [
+        "employee-handbook.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "All claims mirror passage [1] exactly, including the numbers and deadline. Citations point to the correct source passage.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "hb-expense-approval",
+      "question": "Who has to approve an expense claim of £350?",
+      "answer": "A £350 claim sits at or above the £200 threshold, so it needs the employee's direct manager plus additional sign-off from the department head [1]. Receipts must also be submitted within 45 days of the expense date, or reimbursement is at Finance's discretion [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "employee-handbook.md",
+        "security-policy.md",
+        "atlas-product-spec.md"
+      ],
+      "cited_sources": [
+        "employee-handbook.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "All claims derive directly from passage 1, including the threshold logic and the receipt deadline. Citations point to the correct passage.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "hb-review-promotion",
+      "question": "In which review cycle are promotion decisions made?",
+      "answer": "Promotion decisions are made only in the April cycle; the October cycle is developmental and does not affect compensation [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "employee-handbook.md",
+        "security-policy.md",
+        "atlas-product-spec.md"
+      ],
+      "cited_sources": [
+        "employee-handbook.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both claims are verbatim supported by passage 1, which is correctly cited. No extraneous or distorted details.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "hb-onsite-days",
+      "question": "How often are employees expected in the London office?",
+      "answer": "Employees are expected on site at the London office **two days per month**, normally the first Tuesday and the third Thursday [1]. Team leads may waive on-site attendance for employees living more than 150 km from the office [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "employee-handbook.md",
+        "security-policy.md"
+      ],
+      "cited_sources": [
+        "employee-handbook.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "All claims are directly stated in passage 1 and cited correctly. No distortions or added details.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "atlas-batch-limit",
+      "question": "What is the maximum payload size and record count for a single Atlas batch request?",
+      "answer": "A single `POST /v1/batches` request accepts a maximum payload of **50 MB** and a maximum of 100,000 records per batch [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both claims come directly from passage 1 and are cited correctly. No extraneous or distorted details.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "atlas-retries",
+      "question": "How many times does Atlas retry a transient downstream failure, and what happens after that?",
+      "answer": "Atlas retries transient downstream failures up to **5 times** using exponential backoff that starts at 250 ms and is capped at 30 seconds [1]. After the fifth failure, the batch is marked `failed` and an alert is raised to the on-call Platform engineer [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Every claim in the answer mirrors passage [1] exactly, including numbers and outcomes. Citations point to the correct passage.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "atlas-dlq-retention",
+      "question": "How long are rejected records kept in the dead-letter topic?",
+      "answer": "Rejected records are retained in the dead-letter topic `atlas.dlq.v1` for **14 days**, stored alongside a `rejection_reason` field [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "All claims are directly stated in passage 1, which is correctly cited. No extraneous or distorted details.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "atlas-rate-limit",
+      "question": "What happens when a tenant exceeds the Atlas batch rate limit?",
+      "answer": "Each tenant is capped at **60 batch requests per minute**; requests beyond that limit receive an HTTP 429 response with a `Retry-After` header [2]. If a tenant needs a higher cap, the increase is requested through the customer's account manager and takes effect within two business days [2].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "atlas-product-spec.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "All three claims come directly from passage 2's rate limits section and are cited correctly. No unsupported or distorted details.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "sec-incident-report",
+      "question": "How quickly must a suspected security incident be reported, and how quickly is a post-incident review published?",
+      "answer": "Suspected incidents must be reported to `security@northwind.example` within **one hour** of discovery [1]. For SEV-1 and SEV-2 incidents, a written post-incident review must be published internally within **5 working days** [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "security-policy.md",
+        "atlas-product-spec.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [
+        "security-policy.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both claims are directly stated in passage 1 and cited correctly. No extraneous or distorted details.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "sec-prod-credentials",
+      "question": "How long are production database credentials valid?",
+      "answer": "Production database credentials are issued as short-lived tokens valid for 8 hours, and they are never stored in source control [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "security-policy.md",
+        "atlas-product-spec.md"
+      ],
+      "cited_sources": [
+        "security-policy.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both claims come directly from passage 1, which is correctly cited. No distortions or additions.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "cross-atlas-classification",
+      "question": "What data classification applies to customer telemetry ingested through Atlas, and how long is it retained?",
+      "answer": "Customer telemetry ingested through Atlas is classified **Confidential** by default, and is retained for 24 months unless the customer contract specifies otherwise [1]. As Confidential data, it must be encrypted at rest and in transit, with access logged [1].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "security-policy.md",
+        "atlas-product-spec.md"
+      ],
+      "cited_sources": [
+        "security-policy.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Every claim is directly stated in passage 1, including the classification, retention period, and the encryption/logging requirements for Confidential data. All citations point to the correct passage.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "unanswerable-salary-bands",
+      "question": "What are the salary bands for a senior data engineer at Northwind Analytics?",
+      "answer": "INSUFFICIENT_CONTEXT: The passages cover working hours, security policy, and the Atlas ingest specification, but contain no compensation or salary band information.",
+      "answerable": false,
+      "abstained": true,
+      "retrieved_sources": [
+        "employee-handbook.md",
+        "security-policy.md",
+        "atlas-product-spec.md"
+      ],
+      "cited_sources": [],
+      "dangling_citations": [],
+      "retrieval_hit": null,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The retrieved passages contain no salary or compensation data, so abstaining is correct. The answer's characterization of the passage topics is accurate.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "unanswerable-atlas-pricing",
+      "question": "How much does Atlas cost per million ingested records?",
+      "answer": "INSUFFICIENT_CONTEXT: The passages cover Atlas's interfaces, validation, SLOs, rate limits and deprecation policy but contain no pricing or cost-per-record information.",
+      "answerable": false,
+      "abstained": true,
+      "retrieved_sources": [
+        "atlas-product-spec.md",
+        "security-policy.md",
+        "employee-handbook.md"
+      ],
+      "cited_sources": [],
+      "dangling_citations": [],
+      "retrieval_hit": null,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The question asks about per-record pricing, which appears nowhere in the passages, so abstaining is the correct behaviour. The accompanying summary of what the passages do cover is accurate.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "unanswerable-ceo",
+      "question": "Who is the CEO of Northwind Analytics and when was the company founded?",
+      "answer": "INSUFFICIENT_CONTEXT: The passages contain no information about Northwind Analytics' CEO or its founding date.",
+      "answerable": false,
+      "abstained": true,
+      "retrieved_sources": [
+        "security-policy.md",
+        "employee-handbook.md",
+        "atlas-product-spec.md"
+      ],
+      "cited_sources": [],
+      "dangling_citations": [],
+      "retrieval_hit": null,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "The retrieved passages cover security policy, handbook, and product spec details but never name a CEO or founding date. The answer properly abstains.",
+      "flagged": false,
+      "flags": []
+    },
+    {
+      "id": "near-miss-vacation-carryover-deadline",
+      "question": "If I carry unused leave into next year, is there a deadline to use it, and does the learning budget roll over too?",
+      "answer": "Yes — up to 5 unused annual leave days may be carried into the following year, and they must be used before 31 March [1]. The £1,200 annual learning budget does not roll over between years [2].",
+      "answerable": true,
+      "abstained": false,
+      "retrieved_sources": [
+        "employee-handbook.md",
+        "security-policy.md",
+        "atlas-product-spec.md"
+      ],
+      "cited_sources": [
+        "employee-handbook.md"
+      ],
+      "dangling_citations": [],
+      "retrieval_hit": true,
+      "abstention_correct": true,
+      "must_contain_missing": [],
+      "groundedness": 5,
+      "verdict": "grounded",
+      "citations_valid": true,
+      "citation_spans_ok": null,
+      "unsupported_claims": [],
+      "judge_reasoning": "Both parts of the answer are directly stated in passages 1 and 2, with correct citations. No extraneous claims are made.",
+      "flagged": false,
+      "flags": []
+    }
+  ]
+}

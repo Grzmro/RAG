@@ -1,0 +1,57 @@
+name: Docker image
+
+# Publishes to ghcr.io/grzmro/rag. The point is that the EC2 host never
+# builds: a t3.small has neither the RAM nor the CPU credits for it.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Lowercases the repository name, which GHCR requires.
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=sha,format=short
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          # Only what is actually deployed: t3.small is x86_64. Adding arm64
+          # would roughly double the job for an image nothing pulls.
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Layer cache lives in Actions, so only a changed lockfile or a
+          # changed rag/ pays for a real rebuild.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # A plain single-platform manifest — simpler for `docker compose pull`
+          # than a manifest list carrying attestations.
+          provenance: false

@@ -1,0 +1,28 @@
+# Everything the image does not need, plus everything it must never contain.
+
+.git/
+.github/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Secrets and local state: the key arrives through the environment, and the
+# index is a volume, not a layer.
+.env
+.chroma/
+.chroma-private/
+.fastembed_cache/
+
+# Private corpora must not reach an image any more than they reach the repo.
+data/
+
+# Dev-only trees. The runtime stage copies rag/ and README.md explicitly, so
+# these are excluded to keep the build context small, not to hide them.
+tests/
+eval/
+.pytest_cache/
+.ruff_cache/
+Dockerfile
+docker-compose.yml
+.dockerignore

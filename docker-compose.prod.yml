@@ -1,0 +1,26 @@
+# The only file the server needs, alongside a .env holding ANTHROPIC_API_KEY
+# and a ./docs directory holding the corpus.
+#
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+services:
+  rag:
+    image: ghcr.io/grzmro/rag:latest
+    restart: unless-stopped
+    # Loopback only: /ask is unauthenticated and spends API credits, so it
+    # reaches the outside world through an SSH tunnel or a proxy, never directly.
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - .env
+    environment:
+      DOCS_DIR: /data/docs
+      PERSIST_DIR: /data/chroma
+    volumes:
+      - ./docs:/data/docs:ro
+      - chroma:/data/chroma
+    # Leaves headroom on a 2 GB t3.small for the host and the Docker daemon.
+    mem_limit: 1400m
+
+volumes:
+  chroma:
